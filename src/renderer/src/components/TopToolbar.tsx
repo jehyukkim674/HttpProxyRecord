@@ -1,0 +1,71 @@
+import { useState } from 'react';
+import { Alert, Button, Input, Space, Switch, Tag } from 'antd';
+import { PlayCircleOutlined, SafetyCertificateOutlined, StopOutlined } from '@ant-design/icons';
+import type { ProxyStatus } from '../../../shared/types';
+
+type TopToolbarProps = {
+  status: ProxyStatus;
+  error: string | null;
+  systemProxyEnabled: boolean;
+  onStart: (sessionName: string) => void;
+  onStop: () => void;
+  onToggleSystemProxy: (enabled: boolean) => void;
+  onInstallCert: () => void;
+};
+
+export const TopToolbar = ({
+  status,
+  error,
+  systemProxyEnabled,
+  onStart,
+  onStop,
+  onToggleSystemProxy,
+  onInstallCert,
+}: TopToolbarProps) => {
+  const [sessionName, setSessionName] = useState('');
+
+  const handleStart = () => {
+    const name = sessionName.trim() || `세션 ${new Date().toLocaleString('ko-KR')}`;
+    onStart(name);
+    setSessionName('');
+  };
+
+  return (
+    <div style={{ padding: '8px 16px', borderBottom: '1px solid #f0f0f0' }}>
+      <Space wrap>
+        {status.running ? (
+          <Button danger icon={<StopOutlined />} onClick={onStop}>
+            녹화 중지
+          </Button>
+        ) : (
+          <>
+            <Input
+              placeholder="세션 이름 (비우면 자동 생성)"
+              value={sessionName}
+              onChange={(event) => setSessionName(event.target.value)}
+              style={{ width: 260 }}
+              onPressEnter={handleStart}
+            />
+            <Button type="primary" icon={<PlayCircleOutlined />} onClick={handleStart}>
+              녹화 시작
+            </Button>
+          </>
+        )}
+        {status.running && status.port !== null && (
+          <Tag color="green">프록시 실행 중 — 127.0.0.1:{status.port}</Tag>
+        )}
+        <Switch
+          checkedChildren="시스템 프록시 ON"
+          unCheckedChildren="시스템 프록시 OFF"
+          checked={systemProxyEnabled}
+          disabled={!status.running}
+          onChange={onToggleSystemProxy}
+        />
+        <Button icon={<SafetyCertificateOutlined />} onClick={onInstallCert}>
+          인증서 설치
+        </Button>
+      </Space>
+      {error && <Alert type="error" message={error} style={{ marginTop: 8 }} showIcon closable />}
+    </div>
+  );
+};
