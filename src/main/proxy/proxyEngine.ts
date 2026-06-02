@@ -29,6 +29,7 @@ export class ProxyEngine {
   private mitmServer: https.Server | null = null;
   private mitmPort = 0;
   private readonly listeners: TrafficListener[] = [];
+  private readonly activeSockets = new Set<net.Socket>();
 
   constructor(private readonly certManager: CertManager) {}
 
@@ -43,6 +44,12 @@ export class ProxyEngine {
   }
 
   async stop(): Promise<void> {
+    // 열린 터널/연결 소켓을 강제 종료해야 server.close()가 완료된다
+    for (const socket of this.activeSockets) {
+      socket.destroy();
+    }
+    this.activeSockets.clear();
+
     await Promise.all([
       new Promise<void>((resolve) => {
         if (this.httpServer) this.httpServer.close(() => resolve());
@@ -55,6 +62,12 @@ export class ProxyEngine {
     ]);
     this.httpServer = null;
     this.mitmServer = null;
+  }
+
+  /** 소켓을 추적해 stop() 시 강제 정리할 수 있게 한다 */
+  private trackSocket(socket: net.Socket): void {
+    this.activeSockets.add(socket);
+    socket.on('close', () => this.activeSockets.delete(socket));
   }
 
   get isRunning(): boolean {
@@ -71,6 +84,7 @@ export class ProxyEngine {
     return new Promise((resolve, reject) => {
       const server = http.createServer((req, res) => this.handlePlainRequest(req, res));
       server.on('connect', (req, socket, head) => this.handleConnect(req, socket as net.Socket, head));
+      server.on('connection', (socket) => this.trackSocket(socket));
       server.on('error', reject);
       server.listen(port, () => {
         this.httpServer = server;
@@ -119,6 +133,7 @@ export class ProxyEngine {
         },
         (req, res) => this.handleDecryptedRequest(req, res),
       );
+      server.on('connection', (socket) => this.trackSocket(socket));
       server.on('error', reject);
       server.listen(0, '127.0.0.1', () => {
         this.mitmPort = (server.address() as AddressInfo).port;
@@ -143,14 +158,16 @@ export class ProxyEngine {
 
   /** CONNECT 요청: 클라이언트 소켓을 내부 MITM 서버로 파이프 */
   private handleConnect(req: http.IncomingMessage, clientSocket: net.Socket, head: Buffer): void {
-    clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
-
     const serverSocket = net.connect(this.mitmPort, '127.0.0.1', () => {
+      // 중요: 200 응답은 터널(pipe)이 준비된 다음에 보내야 한다.
+      // 먼저 보내면 클라이언트의 TLS ClientHello가 pipe 연결 전에 도착해 유실된다.
       if (head.length > 0) serverSocket.write(head);
       clientSocket.pipe(serverSocket);
       serverSocket.pipe(clientSocket);
+      clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
     });
 
+    this.trackSocket(serverSocket);
     serverSocket.on('error', () => clientSocket.destroy());
     clientSocket.on('error', () => serverSocket.destroy());
   }
