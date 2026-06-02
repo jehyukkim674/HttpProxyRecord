@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+echo "▶ lint 검사..."
+npm run lint
+echo "▶ 포맷 검사..."
+npm run format:check
+echo "✅ pre-commit 통과"
