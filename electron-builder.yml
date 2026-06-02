@@ -1,0 +1,24 @@
+appId: com.httpproxyrecord.app
+productName: HttpProxyRecord
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+mac:
+  # dmg는 macOS 최신 버전에서 dmgbuild/hdiutil plist 이슈가 있어 zip 사용
+  target:
+    - target: zip
+      arch:
+        - arm64
+        - x64
+  category: public.app-category.developer-tools
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
