@@ -1,5 +1,13 @@
 # HttpProxyRecord Implementation Plan
 
+> **구현 완료 (2026-06-03):** 전체 12개 Task 구현 완료. 단위/통합 테스트 34개 통과, E2E 10/10 통과 (실제 example.com HTTP/HTTPS MITM 캡처 + mock 재생 + 패키징 .app 실행 검증).
+>
+> **플랜 대비 변경 사항:**
+> 1. **better-sqlite3 → node:sqlite**: better-sqlite3 12.x가 Electron 42 V8 API와 비호환(네이티브 컴파일 실패) → Node 24 내장 `node:sqlite`(DatabaseSync)로 대체. 네이티브 빌드가 필요 없어져 postinstall 스크립트도 제거.
+> 2. **CONNECT 터널 race condition 수정**: 200 응답을 pipe 연결 후 전송하도록 수정 (플랜 코드는 연결 전 전송 → ClientHello 유실 버그). stop()에 활성 소켓 강제 정리 추가.
+> 3. **macOS 패키징 dmg → zip**: dmgbuild/hdiutil plist 이슈(macOS 최신 버전)로 zip 타겟 사용.
+> 4. **Task 6~11 통합 구현**: Main 프로세스(AppContext/IPC/재생/시스템프록시/내보내기)를 한 번에 작성 후 UI 일괄 작성 (플랜의 점진적 확장 대신 최종 형태로 직접 구현 — 재작업 제거).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** HTTP/HTTPS 트래픽을 캡처·기록·재생하는 크로스플랫폼(macOS + Windows) Electron 데스크톱 앱을 만든다.
