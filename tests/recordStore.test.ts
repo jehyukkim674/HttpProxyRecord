@@ -115,4 +115,19 @@ describe('RecordStore', () => {
     const stored = store.listTraffic(session.id)[0];
     expect(stored.responseBody!.length).toBe(10 * 1024 * 1024);
   });
+
+  it('설정을 저장하고 조회한다', () => {
+    store.setSetting('excludeDomains', JSON.stringify(['*.ga.com']));
+    expect(store.getSetting('excludeDomains')).toBe('["*.ga.com"]');
+  });
+
+  it('없는 설정은 null을 반환한다', () => {
+    expect(store.getSetting('missing')).toBeNull();
+  });
+
+  it('설정을 덮어쓴다', () => {
+    store.setSetting('k', 'a');
+    store.setSetting('k', 'b');
+    expect(store.getSetting('k')).toBe('b');
+  });
 });
