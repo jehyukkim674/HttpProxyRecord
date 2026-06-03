@@ -1,5 +1,7 @@
 # Phase 2 Implementation Plan: 요청 재전송 + 요청 체이닝
 
+> **구현 완료 (2026-06-03):** 7개 Task 완료. 테스트 65개 통과, E2E 8/8 통과(composerSend 재전송·dot-path 추출·토큰 체이닝 주입·재전송 버튼·Composer 모달 실앱 검증).
+
 > **For agentic workers:** TDD. 순수함수 우선. 각 Task는 실패 테스트 → 구현 → 통과 → 커밋.
 
 **Goal:** 캡처 요청을 Composer 모달에서 편집·재전송하고, 응답에서 dot-path로 값을 추출해 변수로 저장 후 다음 요청에 `{{var}}` 주입.
