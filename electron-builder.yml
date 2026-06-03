@@ -29,5 +29,5 @@ nsis:
 # (미설정 시 앱은 정상 동작하고 업데이트 확인만 조용히 무시됨)
 publish:
   - provider: github
-    owner: your-github-owner
+    owner: jehyukkim674
     repo: HttpProxyRecord
