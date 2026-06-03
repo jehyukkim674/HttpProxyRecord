@@ -70,4 +70,13 @@ export const ipc = {
   setOverrideRules: (rules: OverrideRule[]): Promise<OverrideRule[]> => window.api.setOverrideRules(rules),
   getThrottle: (): Promise<ThrottleConfig> => window.api.getThrottle(),
   setThrottle: (config: ThrottleConfig): Promise<ThrottleConfig> => window.api.setThrottle(config),
+
+  // 브레이크포인트 (#3)
+  getBreakpointPatterns: (): Promise<string[]> => window.api.getBreakpointPatterns(),
+  setBreakpointPatterns: (patterns: string[]): Promise<string[]> =>
+    window.api.setBreakpointPatterns(patterns),
+  resolveBreakpoint: (id: number, action: 'forward' | 'block'): Promise<{ resolved: boolean }> =>
+    window.api.resolveBreakpoint(id, action),
+  onBreakpoint: (callback: (hit: { id: number; method: string; url: string }) => void): (() => void) =>
+    window.api.onBreakpoint(callback),
 };

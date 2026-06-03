@@ -12,6 +12,7 @@ import { WaterfallView } from './components/WaterfallView';
 import { SessionCompareModal } from './components/SessionCompareModal';
 import { SnapshotsDrawer } from './components/SnapshotsDrawer';
 import { RequestDiffModal } from './components/RequestDiffModal';
+import { BreakpointPrompt } from './components/BreakpointPrompt';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
@@ -320,6 +321,7 @@ const App = () => {
           setDiffB(null);
         }}
       />
+      <BreakpointPrompt />
     </ConfigProvider>
   );
 };

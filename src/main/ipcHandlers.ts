@@ -16,6 +16,10 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
     getWindow()?.webContents.send('traffic:new', record);
   });
 
+  context.setBreakpointBroadcaster((hit) => {
+    getWindow()?.webContents.send('breakpoint:hit', hit);
+  });
+
   // ── 프록시/녹화 제어 ──
   ipcMain.handle('proxy:start-recording', async (_event, sessionName: string, port: number) => {
     return context.startRecording(sessionName, port);
@@ -177,6 +181,14 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
   ipcMain.handle('override:set', (_event, rules: OverrideRule[]) => context.setOverrideRules(rules));
   ipcMain.handle('throttle:get', () => context.getThrottle());
   ipcMain.handle('throttle:set', (_event, config: ThrottleConfig) => context.setThrottle(config));
+  ipcMain.handle('breakpoint:patterns:get', () => context.getBreakpointPatterns());
+  ipcMain.handle('breakpoint:patterns:set', (_event, patterns: string[]) =>
+    context.setBreakpointPatterns(patterns),
+  );
+  ipcMain.handle('breakpoint:resolve', (_event, id: number, action: 'forward' | 'block') => {
+    context.resolveBreakpoint(id, action);
+    return { resolved: true };
+  });
 
   // ── Composer (재전송/체이닝) ──
   ipcMain.handle('composer:send', (_event, request: ComposedRequest) => sendComposedRequest(request));

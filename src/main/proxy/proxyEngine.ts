@@ -11,9 +11,15 @@ import { matchOverrideRule } from '../../shared/interception';
 type InterceptionConfig = {
   overrideRules: OverrideRule[];
   throttle: ThrottleConfig;
+  breakpointPatterns: string[];
 };
 
 export type TrafficListener = (traffic: CapturedTraffic) => void;
+export type BreakpointHit = { id: number; method: string; url: string };
+export type BreakpointListener = (hit: BreakpointHit) => void;
+export type BreakpointAction = 'forward' | 'block';
+
+const BREAKPOINT_TIMEOUT_MS = 30000;
 
 type ForwardTarget = {
   hostname: string;
@@ -40,7 +46,11 @@ export class ProxyEngine {
   private interception: InterceptionConfig = {
     overrideRules: [],
     throttle: { enabled: false, latencyMs: 0 },
+    breakpointPatterns: [],
   };
+  private readonly breakpointListeners: BreakpointListener[] = [];
+  private readonly pendingBreakpoints = new Map<number, (action: BreakpointAction) => void>();
+  private breakpointSeq = 0;
 
   constructor(private readonly certManager: CertManager) {}
 
@@ -48,9 +58,44 @@ export class ProxyEngine {
     this.listeners.push(listener);
   }
 
-  /** 오버라이드 규칙/throttle 설정을 갱신한다 (#4 #7). */
+  onBreakpoint(listener: BreakpointListener): void {
+    this.breakpointListeners.push(listener);
+  }
+
+  /** 오버라이드 규칙/throttle/브레이크포인트 설정을 갱신한다 (#4 #7 #3). */
   setInterception(config: InterceptionConfig): void {
     this.interception = config;
+  }
+
+  /** 일시정지된 요청을 통과/차단으로 재개한다 (#3). */
+  resolveBreakpoint(id: number, action: BreakpointAction): void {
+    const resolver = this.pendingBreakpoints.get(id);
+    if (resolver) resolver(action);
+  }
+
+  /** 브레이크포인트 패턴에 매칭되면 결정(통과/차단)을 기다린다. 30초 후 자동 통과(안전). */
+  private waitForBreakpoint(method: string, url: string): Promise<BreakpointAction> {
+    const matches = this.interception.breakpointPatterns.some((pattern) => {
+      const trimmed = pattern.trim();
+      if (trimmed.length === 0) return false;
+      const escaped = trimmed.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+      return new RegExp(`^${escaped}$`).test(url);
+    });
+    if (!matches) return Promise.resolve('forward');
+
+    const id = (this.breakpointSeq += 1);
+    return new Promise<BreakpointAction>((resolve) => {
+      const timer = setTimeout(() => {
+        this.pendingBreakpoints.delete(id);
+        resolve('forward');
+      }, BREAKPOINT_TIMEOUT_MS);
+      this.pendingBreakpoints.set(id, (action) => {
+        clearTimeout(timer);
+        this.pendingBreakpoints.delete(id);
+        resolve(action);
+      });
+      for (const listener of this.breakpointListeners) listener({ id, method, url });
+    });
   }
 
   /** @returns 실제 리스닝 포트 (port=0이면 OS가 할당) */
@@ -209,31 +254,52 @@ export class ProxyEngine {
   ): void {
     const startedAt = Date.now();
     const requestChunks: Buffer[] = [];
-    const responseChunks: Buffer[] = [];
+
+    // 요청 본문을 모두 모은 뒤 오버라이드/브레이크포인트/중계를 결정한다 (통합 버퍼 방식)
+    clientReq.on('data', (chunk: Buffer) => requestChunks.push(chunk));
+    clientReq.on('error', () => clientRes.destroy());
+    clientReq.on('end', () => {
+      void this.dispatchRequest(clientReq, clientRes, target, startedAt, requestChunks);
+    });
+  }
+
+  private async dispatchRequest(
+    clientReq: http.IncomingMessage,
+    clientRes: http.ServerResponse,
+    target: ForwardTarget,
+    startedAt: number,
+    requestChunks: Buffer[],
+  ): Promise<void> {
+    const url = this.fullUrl(target);
 
     // #4 오버라이드: 매칭 규칙이 있으면 업스트림 없이 가짜 응답 반환
-    const override = matchOverrideRule(this.fullUrl(target), this.interception.overrideRules);
+    const override = matchOverrideRule(url, this.interception.overrideRules);
     if (override) {
-      clientReq.on('data', (chunk: Buffer) => requestChunks.push(chunk));
-      clientReq.on('end', () => {
-        void this.throttleDelay().then(() => {
-          clientRes.writeHead(override.statusCode, { 'content-type': override.contentType });
-          clientRes.end(override.body);
-          this.emit(
-            this.buildTraffic(
-              clientReq,
-              override.statusCode,
-              { 'content-type': override.contentType },
-              target,
-              {
-                requestChunks,
-                responseChunks: [Buffer.from(override.body)],
-                startedAt,
-              },
-            ),
-          );
-        });
-      });
+      await this.throttleDelay();
+      clientRes.writeHead(override.statusCode, { 'content-type': override.contentType });
+      clientRes.end(override.body);
+      this.emit(
+        this.buildTraffic(clientReq, override.statusCode, { 'content-type': override.contentType }, target, {
+          requestChunks,
+          responseChunks: [Buffer.from(override.body)],
+          startedAt,
+        }),
+      );
+      return;
+    }
+
+    // #3 브레이크포인트: 매칭 시 사용자 결정(통과/차단) 대기 (30초 타임아웃 자동 통과)
+    const action = await this.waitForBreakpoint(clientReq.method ?? 'GET', url);
+    if (action === 'block') {
+      clientRes.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' });
+      clientRes.end('브레이크포인트에서 차단됨');
+      this.emit(
+        this.buildTraffic(clientReq, 403, {}, target, {
+          requestChunks,
+          responseChunks: [Buffer.from('브레이크포인트에서 차단됨')],
+          startedAt,
+        }),
+      );
       return;
     }
 
@@ -243,6 +309,7 @@ export class ProxyEngine {
     }
     outboundHeaders.host = `${target.hostname}${this.isDefaultPort(target) ? '' : `:${target.port}`}`;
 
+    const responseChunks: Buffer[] = [];
     const requestFn = target.isHttps ? https.request : http.request;
     const proxyReq = requestFn(
       {
@@ -281,12 +348,8 @@ export class ProxyEngine {
       this.emit(this.buildTraffic(clientReq, 502, {}, target, { requestChunks, responseChunks, startedAt }));
     });
 
-    clientReq.on('data', (chunk: Buffer) => {
-      requestChunks.push(chunk);
-      proxyReq.write(chunk);
-    });
-    clientReq.on('end', () => proxyReq.end());
-    clientReq.on('error', () => proxyReq.destroy());
+    if (requestChunks.length > 0) proxyReq.write(Buffer.concat(requestChunks));
+    proxyReq.end();
   }
 
   private isDefaultPort(target: ForwardTarget): boolean {

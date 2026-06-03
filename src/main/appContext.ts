@@ -2,6 +2,7 @@ import { app } from 'electron';
 import path from 'node:path';
 import { CertManager } from './proxy/certManager';
 import { ProxyEngine } from './proxy/proxyEngine';
+import type { BreakpointHit } from './proxy/proxyEngine';
 import { matchExcludeDomain } from './proxy/excludeFilter';
 import { RecordStore } from './store/recordStore';
 import { ReplayServer } from './replay/replayServer';
@@ -34,6 +35,7 @@ export class AppContext {
   private recordingSessionId: number | null = null;
   private replaySessionId: number | null = null;
   private broadcaster: TrafficBroadcaster | null = null;
+  private breakpointBroadcaster: ((hit: BreakpointHit) => void) | null = null;
   private excludeDomains: string[] = [];
 
   constructor() {
@@ -44,8 +46,13 @@ export class AppContext {
 
     this.certManager.loadOrCreateRootCa();
     this.proxyEngine.onTraffic((traffic) => this.handleTraffic(traffic));
+    this.proxyEngine.onBreakpoint((hit) => this.breakpointBroadcaster?.(hit));
     this.excludeDomains = this.loadExcludeDomains();
     this.applyInterception();
+  }
+
+  setBreakpointBroadcaster(broadcaster: (hit: BreakpointHit) => void): void {
+    this.breakpointBroadcaster = broadcaster;
   }
 
   // ─────────────────────────── 인터셉션 (#4 오버라이드 / #7 throttle) ───────────────────────────
@@ -64,7 +71,23 @@ export class AppContext {
     this.proxyEngine.setInterception({
       overrideRules: this.loadJson<OverrideRule[]>('overrideRules', []),
       throttle: this.loadJson<ThrottleConfig>('throttle', DEFAULT_THROTTLE),
+      breakpointPatterns: this.loadJson<string[]>('breakpointPatterns', []),
     });
+  }
+
+  getBreakpointPatterns(): string[] {
+    return this.loadJson<string[]>('breakpointPatterns', []);
+  }
+
+  setBreakpointPatterns(patterns: string[]): string[] {
+    const cleaned = patterns.map((p) => p.trim()).filter((p) => p.length > 0);
+    this.recordStore.setSetting('breakpointPatterns', JSON.stringify(cleaned));
+    this.applyInterception();
+    return cleaned;
+  }
+
+  resolveBreakpoint(id: number, action: 'forward' | 'block'): void {
+    this.proxyEngine.resolveBreakpoint(id, action);
   }
 
   getOverrideRules(): OverrideRule[] {

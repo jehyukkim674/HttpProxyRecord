@@ -84,6 +84,21 @@ const api = {
   getThrottle: (): Promise<ThrottleConfig> => ipcRenderer.invoke('throttle:get'),
   setThrottle: (config: ThrottleConfig): Promise<ThrottleConfig> =>
     ipcRenderer.invoke('throttle:set', config),
+
+  // 브레이크포인트 (#3)
+  getBreakpointPatterns: (): Promise<string[]> => ipcRenderer.invoke('breakpoint:patterns:get'),
+  setBreakpointPatterns: (patterns: string[]): Promise<string[]> =>
+    ipcRenderer.invoke('breakpoint:patterns:set', patterns),
+  resolveBreakpoint: (id: number, action: 'forward' | 'block'): Promise<{ resolved: boolean }> =>
+    ipcRenderer.invoke('breakpoint:resolve', id, action),
+  onBreakpoint: (callback: (hit: { id: number; method: string; url: string }) => void): (() => void) => {
+    const listener = (_event: unknown, hit: { id: number; method: string; url: string }): void =>
+      callback(hit);
+    ipcRenderer.on('breakpoint:hit', listener);
+    return () => {
+      ipcRenderer.removeListener('breakpoint:hit', listener);
+    };
+  },
 };
 
 export type RendererApi = typeof api;

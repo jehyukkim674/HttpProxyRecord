@@ -17,13 +17,20 @@ export const SettingsDrawer = ({ open, onClose }: SettingsDrawerProps) => {
   const [rulePattern, setRulePattern] = useState('');
   const [ruleStatus, setRuleStatus] = useState(200);
   const [ruleBody, setRuleBody] = useState('{"mocked":true}');
+  const [breakpoints, setBreakpoints] = useState('');
 
   useEffect(() => {
     if (!open) return;
     void ipc.getExcludeDomains().then(setDomains);
     void ipc.getThrottle().then(setThrottle);
     void ipc.listOverrideRules().then(setRules);
+    void ipc.getBreakpointPatterns().then((patterns) => setBreakpoints(patterns.join('\n')));
   }, [open]);
+
+  const persistBreakpoints = (text: string) => {
+    setBreakpoints(text);
+    void ipc.setBreakpointPatterns(text.split('\n'));
+  };
 
   const persistDomains = async (next: string[]) => {
     setDomains(await ipc.setExcludeDomains(next));
@@ -181,6 +188,20 @@ export const SettingsDrawer = ({ open, onClose }: SettingsDrawerProps) => {
             </Typography.Text>
           </List.Item>
         )}
+      />
+
+      <Divider />
+
+      <Typography.Title level={5}>브레이크포인트 (#3)</Typography.Title>
+      <Typography.Paragraph type="secondary">
+        매칭 URL은 전송 전 일시정지되어 통과/차단을 물어봅니다 (30초 후 자동 통과). 한 줄에 하나,
+        와일드카드(*).
+      </Typography.Paragraph>
+      <Input.TextArea
+        placeholder={'예:\n*/api/payments\n*/admin/*'}
+        value={breakpoints}
+        onChange={(e) => persistBreakpoints(e.target.value)}
+        rows={3}
       />
     </Drawer>
   );
