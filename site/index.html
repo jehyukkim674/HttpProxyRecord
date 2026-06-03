@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HttpProxyRecord — 설치 & 사용 매뉴얼</title>
+    <meta
+      name="description"
+      content="HTTP/HTTPS 트래픽을 캡처·기록·재생하는 데스크톱 앱 HttpProxyRecord의 설치·사용 매뉴얼"
+    />
+    <style>
+      :root {
+        --accent: #1677ff;
+        --bg: #fff;
+        --fg: #222;
+        --muted: #666;
+        --border: #e8e8e8;
+        --code-bg: #f6f8fa;
+        --warn-bg: #fff7e6;
+        --warn-border: #ffd591;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #161618;
+          --fg: #e6e6e6;
+          --muted: #9a9a9a;
+          --border: #2a2a2e;
+          --code-bg: #1e1e22;
+          --warn-bg: #2b2310;
+          --warn-border: #5c4708;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif;
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 40px 20px 80px;
+        color: var(--fg);
+        background: var(--bg);
+        line-height: 1.7;
+      }
+      header {
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 20px;
+        margin-bottom: 32px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 2rem;
+      }
+      .tagline {
+        color: var(--muted);
+        margin: 0;
+      }
+      h2 {
+        margin-top: 48px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+      }
+      h3 {
+        margin-top: 28px;
+      }
+      a {
+        color: var(--accent);
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+        background: var(--code-bg);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px 16px;
+        overflow-x: auto;
+      }
+      pre code {
+        background: none;
+        padding: 0;
+      }
+      .cta {
+        display: inline-block;
+        background: var(--accent);
+        color: #fff;
+        padding: 10px 22px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        margin-top: 8px;
+      }
+      .callout {
+        background: var(--warn-bg);
+        border: 1px solid var(--warn-border);
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin: 20px 0;
+      }
+      .callout strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+      ol li,
+      ul li {
+        margin: 6px 0;
+      }
+      footer {
+        margin-top: 64px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.9em;
+      }
+      .platform {
+        display: inline-block;
+        font-size: 0.75em;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        vertical-align: middle;
+        margin-left: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>HttpProxyRecord</h1>
+      <p class="tagline">HTTP/HTTPS 트래픽을 캡처·기록·재생하는 크로스플랫폼(macOS + Windows) 데스크톱 앱</p>
+      <a class="cta" href="https://github.com/jehyukkim674/HttpProxyRecord/releases/latest"
+        >최신 버전 다운로드 →</a
+      >
+    </header>
+
+    <h2>1. 다운로드</h2>
+    <p>
+      <a href="https://github.com/jehyukkim674/HttpProxyRecord/releases/latest">GitHub Releases</a>에서
+      운영체제에 맞는 파일을 받습니다.
+    </p>
+    <ul>
+      <li><strong>macOS</strong> <span class="platform">Apple Silicon / Intel</span> — <code>HttpProxyRecord-*-mac.zip</code> (arm64 / x64)</li>
+      <li><strong>Windows</strong> <span class="platform">x64</span> — <code>HttpProxyRecord-Setup-*.exe</code> (NSIS 인스톨러)</li>
+    </ul>
+
+    <h2>2. 설치</h2>
+
+    <h3>macOS</h3>
+    <ol>
+      <li>받은 <code>.zip</code>을 더블클릭해 압축을 풀면 <code>HttpProxyRecord.app</code>이 나옵니다.</li>
+      <li>이 <code>.app</code>을 <code>/Applications</code> 폴더로 옮깁니다.</li>
+      <li>아래 <strong>Gatekeeper 차단 해제</strong>를 반드시 수행한 뒤 실행합니다.</li>
+    </ol>
+
+    <div class="callout">
+      <strong>⚠️ "손상되었기 때문에 열 수 없습니다" / "확인되지 않은 개발자" 경고가 뜬다면</strong>
+      이 앱은 Apple 코드 서명·공증(notarization)을 받지 않은 무료 앱이라, macOS Gatekeeper가
+      다운로드한 앱에 격리(quarantine) 속성을 붙여 실행을 막습니다. 터미널에서 아래 한 줄을 실행해
+      격리 속성을 제거하면 정상 실행됩니다.
+      <pre><code>xattr -dr com.apple.quarantine /Applications/HttpProxyRecord.app</code></pre>
+      앱을 다른 경로에 두었다면 <code>/Applications/HttpProxyRecord.app</code> 부분을 실제 경로로
+      바꿉니다. 이후 첫 실행 시에는 앱을 우클릭 → <strong>열기</strong>로 한 번 실행하면 됩니다.
+    </div>
+
+    <h3>Windows</h3>
+    <ol>
+      <li><code>HttpProxyRecord-Setup-*.exe</code>를 실행합니다.</li>
+      <li>SmartScreen 경고가 뜨면 <strong>추가 정보 → 실행</strong>을 선택합니다 (서명되지 않은 앱).</li>
+      <li>설치 위치를 선택하고 설치를 완료합니다.</li>
+    </ol>
+
+    <h2>3. 사용 방법</h2>
+    <ol>
+      <li><strong>녹화 시작</strong> — 세션 이름을 입력하고 시작하면 프록시가 <code>127.0.0.1:8888</code>에 뜹니다.</li>
+      <li>
+        <strong>인증서 설치</strong> — HTTPS 복호화를 위해 루트 CA를 시스템에 신뢰 등록합니다 (최초 1회,
+        관리자 암호 필요).
+      </li>
+      <li>
+        <strong>트래픽 연결</strong>
+        <ul>
+          <li>맥/PC 전체: <strong>"시스템 프록시 ON"</strong> 토글</li>
+          <li>
+            특정 프로세스만:
+            <code>HTTP_PROXY=http://127.0.0.1:8888 HTTPS_PROXY=http://127.0.0.1:8888 &lt;명령&gt;</code>
+          </li>
+          <li>curl 테스트: <code>curl -x http://127.0.0.1:8888 https://example.com/</code></li>
+        </ul>
+      </li>
+      <li>
+        <strong>재생</strong> — 세션 옆 ▶ 버튼을 누르면 mock 서버가 <code>127.0.0.1:8889</code>에 뜹니다
+        (메서드 + 경로 매칭).
+      </li>
+      <li>
+        <strong>내보내기</strong> — 세션 옆 내보내기 버튼으로 HAR / Markdown / curl / Postman / OpenAPI /
+        k6로 저장합니다.
+      </li>
+    </ol>
+
+    <h2>4. 자동 업데이트</h2>
+    <p>
+      설치형 앱은 실행 시 GitHub Releases를 확인해 새 버전이 있으면 자동으로 내려받아 다음 실행 때
+      적용합니다. 별도 설정은 필요 없습니다. (개발 모드에서는 동작하지 않습니다.)
+    </p>
+
+    <footer>
+      <p>
+        소스 코드 · 이슈 · 릴리스:
+        <a href="https://github.com/jehyukkim674/HttpProxyRecord">github.com/jehyukkim674/HttpProxyRecord</a>
+        · MIT License
+      </p>
+    </footer>
+  </body>
+</html>
