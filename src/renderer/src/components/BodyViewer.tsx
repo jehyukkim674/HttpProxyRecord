@@ -6,11 +6,12 @@ type BodyViewerProps = {
   contentType: string | undefined;
 };
 
-/** 응답/요청 바디 뷰어 — JSON이면 pretty 모드 지원 */
+/** 응답/요청 바디 뷰어 — JSON pretty + 이미지 미리보기 지원 */
 export const BodyViewer = ({ body, contentType }: BodyViewerProps) => {
   const [mode, setMode] = useState<'pretty' | 'raw'>('pretty');
 
   const isJson = (contentType ?? '').includes('json');
+  const isImage = (contentType ?? '').toLowerCase().startsWith('image/');
 
   const prettyBody = useMemo(() => {
     if (body === null) return null;
@@ -24,6 +25,17 @@ export const BodyViewer = ({ body, contentType }: BodyViewerProps) => {
 
   if (body === null || body.length === 0) {
     return <Typography.Text type="secondary">바디 없음</Typography.Text>;
+  }
+
+  // 이미지: 캡처 시 base64로 저장되므로 data URL로 렌더
+  if (isImage) {
+    return (
+      <img
+        src={`data:${contentType};base64,${body}`}
+        alt="응답 이미지"
+        style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 4 }}
+      />
+    );
   }
 
   return (

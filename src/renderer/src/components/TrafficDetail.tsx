@@ -1,7 +1,53 @@
-import { Button, Descriptions, Empty, Space, Table, Tabs, Typography } from 'antd';
+import { Button, Descriptions, Empty, Space, Table, Tabs, Tag, Typography } from 'antd';
 import { CameraOutlined, CopyOutlined, SendOutlined } from '@ant-design/icons';
 import type { TrafficRecord } from '../../../shared/types';
+import { decodeJwt, findBearerToken } from '../../../shared/jwt';
+import { parseCookieHeader } from '../../../shared/cookies';
 import { BodyViewer } from './BodyViewer';
+
+const SecurityTab = ({ record }: { record: TrafficRecord }) => {
+  const token = findBearerToken(record.requestHeaders);
+  const decoded = token ? decodeJwt(token) : null;
+  const cookies = parseCookieHeader(record.requestHeaders['cookie']);
+
+  return (
+    <>
+      <Typography.Title level={5}>JWT (Authorization)</Typography.Title>
+      {decoded ? (
+        <>
+          {decoded.expiresAt && (
+            <Tag color={new Date(decoded.expiresAt) < new Date() ? 'red' : 'green'}>
+              만료: {new Date(decoded.expiresAt).toLocaleString('ko-KR')}
+            </Tag>
+          )}
+          <Typography.Text type="secondary">payload</Typography.Text>
+          <pre style={{ background: '#fafafa', padding: 8, borderRadius: 4, fontSize: 12, overflow: 'auto' }}>
+            {JSON.stringify(decoded.payload, null, 2)}
+          </pre>
+        </>
+      ) : (
+        <Typography.Text type="secondary">Bearer JWT 없음</Typography.Text>
+      )}
+      <Typography.Title level={5} style={{ marginTop: 16 }}>
+        쿠키 ({cookies.length})
+      </Typography.Title>
+      {cookies.length > 0 ? (
+        <Table
+          rowKey={(row) => row.name}
+          dataSource={cookies}
+          columns={[
+            { title: '이름', dataIndex: 'name', width: 180 },
+            { title: '값', dataIndex: 'value', ellipsis: true },
+          ]}
+          size="small"
+          pagination={false}
+        />
+      ) : (
+        <Typography.Text type="secondary">쿠키 없음</Typography.Text>
+      )}
+    </>
+  );
+};
 
 type TrafficDetailProps = {
   record: TrafficRecord | null;
@@ -84,6 +130,11 @@ export const TrafficDetail = ({ record, onCopyCurl, onResend, onSaveSnapshot }: 
                 <BodyViewer body={record.requestBody} contentType={record.requestHeaders['content-type']} />
               </>
             ),
+          },
+          {
+            key: 'security',
+            label: 'JWT/쿠키',
+            children: <SecurityTab record={record} />,
           },
         ]}
       />

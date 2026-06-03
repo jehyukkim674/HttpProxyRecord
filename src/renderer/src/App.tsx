@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ConfigProvider, Segmented, message } from 'antd';
+import { ConfigProvider, Segmented, message, theme } from 'antd';
 import koKR from 'antd/locale/ko_KR';
 import { TopToolbar } from './components/TopToolbar';
 import { SessionSidebar } from './components/SessionSidebar';
@@ -35,6 +35,7 @@ const App = () => {
   const [trafficView, setTrafficView] = useState<'table' | 'waterfall'>('table');
   const [compareOpen, setCompareOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   const { records } = useTraffic(selectedSessionId);
   const { filter, setFilter, filtered } = useTrafficFilter(records);
@@ -163,7 +164,10 @@ const App = () => {
   );
 
   return (
-    <ConfigProvider locale={koKR}>
+    <ConfigProvider
+      locale={koKR}
+      theme={{ algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm }}
+    >
       {messageContextHolder}
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
         <TopToolbar
@@ -177,6 +181,8 @@ const App = () => {
           onOpenSettings={() => setSettingsOpen(true)}
           onOpenCompare={() => setCompareOpen(true)}
           onOpenSnapshots={() => setSnapshotsOpen(true)}
+          darkMode={darkMode}
+          onToggleDarkMode={setDarkMode}
         />
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           <SessionSidebar

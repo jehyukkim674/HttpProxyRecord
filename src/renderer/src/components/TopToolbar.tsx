@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, Button, Input, Space, Switch, Tag } from 'antd';
 import {
+  BulbOutlined,
   CameraOutlined,
   DiffOutlined,
   PlayCircleOutlined,
@@ -21,6 +22,8 @@ type TopToolbarProps = {
   onOpenSettings: () => void;
   onOpenCompare: () => void;
   onOpenSnapshots: () => void;
+  darkMode: boolean;
+  onToggleDarkMode: (enabled: boolean) => void;
 };
 
 export const TopToolbar = ({
@@ -34,6 +37,8 @@ export const TopToolbar = ({
   onOpenSettings,
   onOpenCompare,
   onOpenSnapshots,
+  darkMode,
+  onToggleDarkMode,
 }: TopToolbarProps) => {
   const [sessionName, setSessionName] = useState('');
 
@@ -85,6 +90,13 @@ export const TopToolbar = ({
         </Button>
         <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
           설정
+        </Button>
+        <Button
+          icon={<BulbOutlined />}
+          type={darkMode ? 'primary' : 'default'}
+          onClick={() => onToggleDarkMode(!darkMode)}
+        >
+          {darkMode ? '라이트' : '다크'}
         </Button>
       </Space>
       {error && <Alert type="error" message={error} style={{ marginTop: 8 }} showIcon closable />}

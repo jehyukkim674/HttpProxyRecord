@@ -5,6 +5,7 @@ import tls from 'node:tls';
 import type { AddressInfo } from 'node:net';
 import type { CapturedTraffic } from '../../shared/types';
 import type { CertManager } from './certManager';
+import { decodeBody } from './decompress';
 
 export type TrafficListener = (traffic: CapturedTraffic) => void;
 
@@ -251,6 +252,15 @@ export class ProxyEngine {
     const hostWithPort = `${target.hostname}${this.isDefaultPort(target) ? '' : `:${target.port}`}`;
     const scheme = target.isHttps ? 'https' : 'http';
 
+    const normalizedResponseHeaders = this.normalizeHeaders(responseHeaders);
+    const contentEncoding = normalizedResponseHeaders['content-encoding'];
+    const decodedResponse =
+      responseBodyBuffer.length > 0
+        ? decodeBody(responseBodyBuffer, contentEncoding, normalizedResponseHeaders['content-type'])
+        : null;
+    // 본문을 해제했으므로 content-encoding 헤더는 제거(저장된 본문은 평문/그대로)
+    delete normalizedResponseHeaders['content-encoding'];
+
     return {
       timestamp: new Date(data.startedAt).toISOString(),
       method: clientReq.method ?? 'GET',
@@ -260,8 +270,8 @@ export class ProxyEngine {
       requestHeaders: this.normalizeHeaders(clientReq.headers),
       requestBody: requestBodyBuffer.length > 0 ? requestBodyBuffer.toString('utf-8') : null,
       statusCode,
-      responseHeaders: this.normalizeHeaders(responseHeaders),
-      responseBody: responseBodyBuffer.length > 0 ? responseBodyBuffer.toString('utf-8') : null,
+      responseHeaders: normalizedResponseHeaders,
+      responseBody: decodedResponse ? decodedResponse.text : null,
       durationMs: Date.now() - data.startedAt,
       requestSize: requestBodyBuffer.length,
       responseSize: responseBodyBuffer.length,
