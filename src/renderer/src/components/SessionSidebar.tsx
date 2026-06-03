@@ -34,7 +34,7 @@ export const SessionSidebar = ({
   onExportK6,
 }: SessionSidebarProps) => {
   return (
-    <div style={{ width: 300, borderRight: '1px solid #f0f0f0', overflow: 'auto', flexShrink: 0 }}>
+    <div style={{ width: 300, borderRight: '1px solid var(--app-border)', overflow: 'auto', flexShrink: 0 }}>
       <Typography.Title level={5} style={{ padding: '12px 16px', margin: 0 }}>
         세션
       </Typography.Title>

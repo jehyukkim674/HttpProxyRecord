@@ -33,7 +33,15 @@ const SecurityTab = ({ record }: { record: TrafficRecord }) => {
             </Tag>
           )}
           <Typography.Text type="secondary">payload</Typography.Text>
-          <pre style={{ background: '#fafafa', padding: 8, borderRadius: 4, fontSize: 12, overflow: 'auto' }}>
+          <pre
+            style={{
+              background: 'var(--app-surface)',
+              padding: 8,
+              borderRadius: 4,
+              fontSize: 12,
+              overflow: 'auto',
+            }}
+          >
             {JSON.stringify(decoded.payload, null, 2)}
           </pre>
         </>

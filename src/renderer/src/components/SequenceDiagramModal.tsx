@@ -26,7 +26,7 @@ export const SequenceDiagramModal = ({ open, records, onClose }: Props) => {
       </Button>
       <pre
         style={{
-          background: '#fafafa',
+          background: 'var(--app-surface)',
           padding: 12,
           borderRadius: 4,
           maxHeight: 480,

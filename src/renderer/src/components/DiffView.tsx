@@ -16,7 +16,7 @@ type DiffViewProps = { diff: LineDiff[] };
 export const DiffView = ({ diff }: DiffViewProps) => (
   <pre
     style={{
-      background: '#fafafa',
+      background: 'var(--app-surface)',
       padding: 8,
       borderRadius: 4,
       fontSize: 12,

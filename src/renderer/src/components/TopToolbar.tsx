@@ -84,7 +84,7 @@ export const TopToolbar = ({
   };
 
   return (
-    <div style={{ padding: '8px 16px', borderBottom: '1px solid #f0f0f0' }}>
+    <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--app-border)' }}>
       <Space wrap>
         {status.running ? (
           <Button danger icon={<StopOutlined />} onClick={onStop}>

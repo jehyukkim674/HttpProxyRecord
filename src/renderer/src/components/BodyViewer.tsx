@@ -66,7 +66,7 @@ export const BodyViewer = ({ body, contentType }: BodyViewerProps) => {
       {effectiveMode === 'tree' && treeAvailable ? (
         <div
           style={{
-            background: '#fafafa',
+            background: 'var(--app-surface)',
             padding: 12,
             borderRadius: 4,
             maxHeight: 400,
@@ -78,7 +78,7 @@ export const BodyViewer = ({ body, contentType }: BodyViewerProps) => {
       ) : (
         <pre
           style={{
-            background: '#fafafa',
+            background: 'var(--app-surface)',
             padding: 12,
             borderRadius: 4,
             maxHeight: 400,

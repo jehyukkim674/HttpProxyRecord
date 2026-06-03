@@ -40,7 +40,15 @@ export const WaterfallView = ({ records }: WaterfallViewProps) => {
           >
             {row.label}
           </div>
-          <div style={{ flex: 1, position: 'relative', height: 18, background: '#fafafa', borderRadius: 2 }}>
+          <div
+            style={{
+              flex: 1,
+              position: 'relative',
+              height: 18,
+              background: 'var(--app-surface)',
+              borderRadius: 2,
+            }}
+          >
             <div
               title={`${row.leftMs}ms 시작 · ${row.widthMs}ms`}
               style={{

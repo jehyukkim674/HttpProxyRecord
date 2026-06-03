@@ -59,6 +59,11 @@ const App = () => {
   const [compareOpen, setCompareOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+
+  // 전역 CSS 변수(<body> 배경·스크롤바·하드코딩 색)가 테마를 따라가도록 <html>에 표시
+  useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
+  }, [darkMode]);
   const [diffA, setDiffA] = useState<TrafficRecord | null>(null);
   const [diffB, setDiffB] = useState<TrafficRecord | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
@@ -288,7 +293,14 @@ const App = () => {
               )}
             </div>
           </div>
-          <div style={{ width: 480, borderLeft: '1px solid #f0f0f0', overflow: 'hidden', flexShrink: 0 }}>
+          <div
+            style={{
+              width: 480,
+              borderLeft: '1px solid var(--app-border)',
+              overflow: 'hidden',
+              flexShrink: 0,
+            }}
+          >
             <TrafficDetail
               record={selectedRecord}
               onCopyCurl={(recordId) => void exporter.copyCurl(recordId)}

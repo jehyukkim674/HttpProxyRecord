@@ -203,7 +203,7 @@ export const ComposerModal = ({
       />
 
       {response && (
-        <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
+        <div style={{ borderTop: '1px solid var(--app-border)', paddingTop: 12 }}>
           <Typography.Title level={5}>
             응답 <Tag color={response.statusCode < 400 ? 'green' : 'red'}>{response.statusCode}</Tag>
             <Typography.Text type="secondary">{response.durationMs}ms</Typography.Text>

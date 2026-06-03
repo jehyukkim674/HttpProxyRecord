@@ -1,0 +1,75 @@
+/*
+ * 전역 테마 변수 + 다크모드 보정.
+ * antd의 darkAlgorithm은 antd 컴포넌트만 칠하고 <body>·인라인 하드코딩 색·
+ * 네이티브 스크롤바는 건드리지 않는다. 여기서 그 빈틈을 메운다.
+ * data-theme 속성은 App에서 darkMode 상태에 맞춰 <html>에 설정한다.
+ */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+  /* 테마 전환 시 화면 전체가 부드럽게 바뀌도록 */
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* 라이트(기본) — 기존 인라인 색(#f0f0f0/#fafafa)과 동일하게 유지 */
+:root,
+html[data-theme='light'] {
+  --app-bg: #ffffff;
+  --app-surface: #fafafa;
+  --app-border: #f0f0f0;
+  --app-text: rgba(0, 0, 0, 0.88);
+  --scroll-thumb: rgba(0, 0, 0, 0.2);
+  --scroll-thumb-hover: rgba(0, 0, 0, 0.35);
+  --selection-bg: rgba(22, 119, 255, 0.2);
+}
+
+/* 다크 — antd v6 darkAlgorithm 토큰에 맞춘 값 */
+html[data-theme='dark'] {
+  --app-bg: #141414; /* colorBgContainer */
+  --app-surface: #1f1f1f; /* colorBgElevated */
+  --app-border: #303030; /* colorBorderSecondary */
+  --app-text: rgba(255, 255, 255, 0.85);
+  --scroll-thumb: rgba(255, 255, 255, 0.18);
+  --scroll-thumb-hover: rgba(255, 255, 255, 0.32);
+  --selection-bg: rgba(22, 119, 255, 0.35);
+}
+
+/* 텍스트 선택 하이라이트도 테마를 따라가게 */
+::selection {
+  background: var(--selection-bg);
+}
+
+/* 전역 스크롤바 — 기본 흰 스크롤바가 다크 화면에서 튀는 문제 해결.
+   antd Select 등 팝업 내부 스크롤바에도 동일 적용된다. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}

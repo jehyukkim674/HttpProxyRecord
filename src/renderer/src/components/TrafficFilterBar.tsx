@@ -26,7 +26,7 @@ export const TrafficFilterBar = ({ filter, onChange, total, shown }: TrafficFilt
   };
 
   return (
-    <div style={{ padding: '8px 16px', borderBottom: '1px solid #f0f0f0' }}>
+    <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--app-border)' }}>
       <Space wrap>
         <Input
           placeholder="도메인"

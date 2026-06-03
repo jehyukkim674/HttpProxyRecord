@@ -48,7 +48,7 @@ export const CommandPalette = ({ open, commands, onClose }: Props) => {
       <List
         size="small"
         dataSource={filtered.slice(0, 30)}
-        style={{ maxHeight: 360, overflow: 'auto', borderTop: '1px solid #f0f0f0' }}
+        style={{ maxHeight: 360, overflow: 'auto', borderTop: '1px solid var(--app-border)' }}
         renderItem={(command) => (
           <List.Item style={{ cursor: 'pointer', padding: '8px 16px' }} onClick={() => runCommand(command)}>
             {command.label}
