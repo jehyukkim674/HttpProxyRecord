@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ProxyStatus, ReplayStatus, Session, TrafficRecord } from '../shared/types';
+import type {
+  ComposedRequest,
+  ComposedResponse,
+  ProxyStatus,
+  ReplayStatus,
+  Session,
+  TrafficRecord,
+} from '../shared/types';
 
 const api = {
   // 프록시/녹화
@@ -46,6 +53,10 @@ const api = {
   exportMarkdown: (sessionId: number): Promise<{ saved: boolean; path?: string }> =>
     ipcRenderer.invoke('export:markdown', sessionId),
   copyCurl: (recordId: number): Promise<{ copied: boolean }> => ipcRenderer.invoke('export:curl', recordId),
+
+  // Composer (재전송/체이닝)
+  composerSend: (request: ComposedRequest): Promise<ComposedResponse> =>
+    ipcRenderer.invoke('composer:send', request),
 };
 
 export type RendererApi = typeof api;

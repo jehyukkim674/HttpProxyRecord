@@ -1,11 +1,12 @@
-import { Button, Descriptions, Empty, Table, Tabs, Typography } from 'antd';
-import { CopyOutlined } from '@ant-design/icons';
+import { Button, Descriptions, Empty, Space, Table, Tabs, Typography } from 'antd';
+import { CopyOutlined, SendOutlined } from '@ant-design/icons';
 import type { TrafficRecord } from '../../../shared/types';
 import { BodyViewer } from './BodyViewer';
 
 type TrafficDetailProps = {
   record: TrafficRecord | null;
   onCopyCurl: (recordId: number) => void;
+  onResend: (record: TrafficRecord) => void;
 };
 
 const HeaderTable = ({ headers }: { headers: Record<string, string> }) => (
@@ -21,7 +22,7 @@ const HeaderTable = ({ headers }: { headers: Record<string, string> }) => (
   />
 );
 
-export const TrafficDetail = ({ record, onCopyCurl }: TrafficDetailProps) => {
+export const TrafficDetail = ({ record, onCopyCurl, onResend }: TrafficDetailProps) => {
   if (!record) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -35,14 +36,14 @@ export const TrafficDetail = ({ record, onCopyCurl }: TrafficDetailProps) => {
       <Typography.Title level={5} style={{ wordBreak: 'break-all', marginTop: 0 }}>
         {record.method} {record.url}
       </Typography.Title>
-      <Button
-        size="small"
-        icon={<CopyOutlined />}
-        onClick={() => onCopyCurl(record.id)}
-        style={{ marginBottom: 12 }}
-      >
-        curl 복사
-      </Button>
+      <Space style={{ marginBottom: 12 }}>
+        <Button size="small" icon={<CopyOutlined />} onClick={() => onCopyCurl(record.id)}>
+          curl 복사
+        </Button>
+        <Button size="small" icon={<SendOutlined />} onClick={() => onResend(record)}>
+          재전송
+        </Button>
+      </Space>
       <Descriptions size="small" column={2} style={{ marginBottom: 16 }}>
         <Descriptions.Item label="상태">{record.statusCode}</Descriptions.Item>
         <Descriptions.Item label="소요시간">{record.durationMs}ms</Descriptions.Item>

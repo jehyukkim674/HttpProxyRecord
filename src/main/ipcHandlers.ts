@@ -4,6 +4,8 @@ import type { BrowserWindow } from 'electron';
 import type { AppContext } from './appContext';
 import { toCurl, toHar, toMarkdown } from './export/exporter';
 import { installRootCa } from './system/certInstaller';
+import { sendComposedRequest } from './composer/requestSender';
+import type { ComposedRequest } from '../shared/types';
 
 /** 모든 IPC 채널을 등록한다. 채널 이름은 preload의 api와 1:1 대응 */
 export const registerIpcHandlers = (context: AppContext, getWindow: () => BrowserWindow | null): void => {
@@ -114,4 +116,7 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
     clipboard.writeText(curl);
     return { copied: true };
   });
+
+  // ── Composer (재전송/체이닝) ──
+  ipcMain.handle('composer:send', (_event, request: ComposedRequest) => sendComposedRequest(request));
 };

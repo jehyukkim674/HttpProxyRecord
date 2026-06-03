@@ -1,4 +1,11 @@
-import type { ProxyStatus, ReplayStatus, Session, TrafficRecord } from '../../../shared/types';
+import type {
+  ComposedRequest,
+  ComposedResponse,
+  ProxyStatus,
+  ReplayStatus,
+  Session,
+  TrafficRecord,
+} from '../../../shared/types';
 
 /** preload가 노출한 window.api 래퍼 — 컴포넌트는 이 모듈만 사용한다 */
 export const ipc = {
@@ -36,4 +43,7 @@ export const ipc = {
   exportMarkdown: (sessionId: number): Promise<{ saved: boolean; path?: string }> =>
     window.api.exportMarkdown(sessionId),
   copyCurl: (recordId: number): Promise<{ copied: boolean }> => window.api.copyCurl(recordId),
+
+  // Composer (재전송/체이닝)
+  composerSend: (request: ComposedRequest): Promise<ComposedResponse> => window.api.composerSend(request),
 };

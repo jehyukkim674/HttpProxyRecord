@@ -7,10 +7,12 @@ import { TrafficTable } from './components/TrafficTable';
 import { TrafficDetail } from './components/TrafficDetail';
 import { TrafficFilterBar } from './components/TrafficFilterBar';
 import { SettingsDrawer } from './components/SettingsDrawer';
+import { ComposerModal } from './components/ComposerModal';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
 import { useTrafficFilter } from './hooks/useTrafficFilter';
+import { useComposerVariables } from './hooks/useComposerVariables';
 import { ipc } from './services/ipc';
 import type { ReplayStatus, TrafficRecord } from '../../shared/types';
 
@@ -24,6 +26,9 @@ const App = () => {
   const [systemProxyEnabled, setSystemProxyEnabled] = useState(false);
   const [replayStatus, setReplayStatus] = useState<ReplayStatus | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const composerVars = useComposerVariables();
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerSeed, setComposerSeed] = useState<TrafficRecord | null>(null);
 
   const { records } = useTraffic(selectedSessionId);
   const { filter, setFilter, filtered } = useTrafficFilter(records);
@@ -189,11 +194,26 @@ const App = () => {
             </div>
           </div>
           <div style={{ width: 480, borderLeft: '1px solid #f0f0f0', overflow: 'hidden', flexShrink: 0 }}>
-            <TrafficDetail record={selectedRecord} onCopyCurl={(recordId) => void handleCopyCurl(recordId)} />
+            <TrafficDetail
+              record={selectedRecord}
+              onCopyCurl={(recordId) => void handleCopyCurl(recordId)}
+              onResend={(record) => {
+                setComposerSeed(record);
+                setComposerOpen(true);
+              }}
+            />
           </div>
         </div>
       </div>
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ComposerModal
+        open={composerOpen}
+        initial={composerSeed}
+        variables={composerVars.variables}
+        onSetVariable={composerVars.setVariable}
+        onRemoveVariable={composerVars.removeVariable}
+        onClose={() => setComposerOpen(false)}
+      />
     </ConfigProvider>
   );
 };
