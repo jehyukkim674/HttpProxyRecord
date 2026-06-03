@@ -1,5 +1,15 @@
 import { DatabaseSync } from 'node:sqlite';
-import type { CapturedTraffic, Session, TrafficRecord } from '../../shared/types';
+import type { CapturedTraffic, Session, Snapshot, TrafficRecord } from '../../shared/types';
+
+type SnapshotRow = {
+  id: number;
+  method: string;
+  path: string;
+  url: string;
+  status_code: number;
+  body: string;
+  saved_at: string;
+};
 
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 
@@ -81,7 +91,54 @@ export class RecordStore {
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        method TEXT NOT NULL,
+        path TEXT NOT NULL,
+        url TEXT NOT NULL,
+        status_code INTEGER NOT NULL,
+        body TEXT NOT NULL,
+        saved_at TEXT NOT NULL
+      );
     `);
+  }
+
+  private toSnapshot(row: SnapshotRow): Snapshot {
+    return {
+      id: row.id,
+      method: row.method,
+      path: row.path,
+      url: row.url,
+      statusCode: row.status_code,
+      body: row.body,
+      savedAt: row.saved_at,
+    };
+  }
+
+  saveSnapshot(input: Omit<Snapshot, 'id' | 'savedAt'>): Snapshot {
+    const savedAt = new Date().toISOString();
+    const result = this.db
+      .prepare(
+        'INSERT INTO snapshots (method, path, url, status_code, body, saved_at) VALUES (?, ?, ?, ?, ?, ?)',
+      )
+      .run(input.method, input.path, input.url, input.statusCode, input.body, savedAt);
+    return { ...input, id: Number(result.lastInsertRowid), savedAt };
+  }
+
+  listSnapshots(): Snapshot[] {
+    const rows = this.db
+      .prepare('SELECT * FROM snapshots ORDER BY id DESC')
+      .all() as unknown as SnapshotRow[];
+    return rows.map((row) => this.toSnapshot(row));
+  }
+
+  getSnapshotById(id: number): Snapshot | null {
+    const row = this.db.prepare('SELECT * FROM snapshots WHERE id = ?').get(id) as SnapshotRow | undefined;
+    return row ? this.toSnapshot(row) : null;
+  }
+
+  deleteSnapshot(id: number): void {
+    this.db.prepare('DELETE FROM snapshots WHERE id = ?').run(id);
   }
 
   getSetting(key: string): string | null {

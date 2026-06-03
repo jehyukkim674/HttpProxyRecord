@@ -130,4 +130,43 @@ describe('RecordStore', () => {
     store.setSetting('k', 'b');
     expect(store.getSetting('k')).toBe('b');
   });
+
+  it('스냅샷을 저장하고 조회한다', () => {
+    const snap = store.saveSnapshot({
+      method: 'GET',
+      path: '/users',
+      url: 'https://api.example.com/users',
+      statusCode: 200,
+      body: '{"a":1}',
+    });
+    expect(snap.id).toBeGreaterThan(0);
+    expect(snap.savedAt).not.toBe('');
+    const list = store.listSnapshots();
+    expect(list).toHaveLength(1);
+    expect(list[0].url).toBe('https://api.example.com/users');
+  });
+
+  it('스냅샷을 삭제한다', () => {
+    const snap = store.saveSnapshot({
+      method: 'GET',
+      path: '/x',
+      url: 'http://x/x',
+      statusCode: 200,
+      body: '',
+    });
+    store.deleteSnapshot(snap.id);
+    expect(store.listSnapshots()).toHaveLength(0);
+  });
+
+  it('id로 스냅샷을 조회한다', () => {
+    const snap = store.saveSnapshot({
+      method: 'GET',
+      path: '/x',
+      url: 'http://x/x',
+      statusCode: 200,
+      body: 'b',
+    });
+    expect(store.getSnapshotById(snap.id)?.body).toBe('b');
+    expect(store.getSnapshotById(9999)).toBeNull();
+  });
 });
