@@ -2,6 +2,7 @@ import { app } from 'electron';
 import path from 'node:path';
 import { CertManager } from './proxy/certManager';
 import { ProxyEngine } from './proxy/proxyEngine';
+import { matchExcludeDomain } from './proxy/excludeFilter';
 import { RecordStore } from './store/recordStore';
 import { ReplayServer } from './replay/replayServer';
 import { SystemProxyManager } from './system/systemProxy';
@@ -24,6 +25,7 @@ export class AppContext {
   private recordingSessionId: number | null = null;
   private replaySessionId: number | null = null;
   private broadcaster: TrafficBroadcaster | null = null;
+  private excludeDomains: string[] = [];
 
   constructor() {
     const userDataDir = app.getPath('userData');
@@ -33,6 +35,7 @@ export class AppContext {
 
     this.certManager.loadOrCreateRootCa();
     this.proxyEngine.onTraffic((traffic) => this.handleTraffic(traffic));
+    this.excludeDomains = this.loadExcludeDomains();
   }
 
   /** Renderer로 실시간 트래픽을 보낼 콜백 등록 */
@@ -42,9 +45,33 @@ export class AppContext {
 
   private handleTraffic(traffic: CapturedTraffic): void {
     if (this.recordingSessionId === null) return;
+    // 제외 도메인은 기록·표시하지 않는다 (중계는 ProxyEngine이 이미 수행)
+    if (matchExcludeDomain(traffic.host, this.excludeDomains)) return;
 
     const record = this.recordStore.insertTraffic(this.recordingSessionId, traffic);
     this.broadcaster?.(record);
+  }
+
+  // ─────────────────────────── 설정: 캡처 제외 도메인 ───────────────────────────
+
+  private loadExcludeDomains(): string[] {
+    const raw = this.recordStore.getSetting('excludeDomains');
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw) as string[];
+    } catch {
+      return [];
+    }
+  }
+
+  getExcludeDomains(): string[] {
+    return this.excludeDomains;
+  }
+
+  setExcludeDomains(domains: string[]): string[] {
+    this.excludeDomains = domains.map((domain) => domain.trim()).filter((domain) => domain.length > 0);
+    this.recordStore.setSetting('excludeDomains', JSON.stringify(this.excludeDomains));
+    return this.excludeDomains;
   }
 
   // ─────────────────────────── 녹화 ───────────────────────────

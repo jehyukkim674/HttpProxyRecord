@@ -1,4 +1,4 @@
-import type { TrafficFilter, TrafficRecord } from '../../../shared/types';
+import type { TrafficFilter, TrafficRecord } from './types';
 
 export const emptyFilter = (): TrafficFilter => ({
   domain: '',

@@ -14,6 +14,10 @@ export const ipc = {
   deleteSession: (sessionId: number): Promise<Session[]> => window.api.deleteSession(sessionId),
   getSessionTraffic: (sessionId: number): Promise<TrafficRecord[]> => window.api.getSessionTraffic(sessionId),
 
+  // 설정: 캡처 제외 도메인
+  getExcludeDomains: (): Promise<string[]> => window.api.getExcludeDomains(),
+  setExcludeDomains: (domains: string[]): Promise<string[]> => window.api.setExcludeDomains(domains),
+
   // 시스템 프록시 / 인증서
   enableSystemProxy: (): Promise<{ enabled: boolean }> => window.api.enableSystemProxy(),
   disableSystemProxy: (): Promise<{ enabled: boolean }> => window.api.disableSystemProxy(),

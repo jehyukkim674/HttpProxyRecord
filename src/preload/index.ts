@@ -23,6 +23,11 @@ const api = {
   getSessionTraffic: (sessionId: number): Promise<TrafficRecord[]> =>
     ipcRenderer.invoke('session:traffic', sessionId),
 
+  // 설정: 캡처 제외 도메인
+  getExcludeDomains: (): Promise<string[]> => ipcRenderer.invoke('settings:get-exclude-domains'),
+  setExcludeDomains: (domains: string[]): Promise<string[]> =>
+    ipcRenderer.invoke('settings:set-exclude-domains', domains),
+
   // 시스템 프록시 / 인증서
   enableSystemProxy: (): Promise<{ enabled: boolean }> => ipcRenderer.invoke('system-proxy:enable'),
   disableSystemProxy: (): Promise<{ enabled: boolean }> => ipcRenderer.invoke('system-proxy:disable'),

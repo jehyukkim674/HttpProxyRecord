@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emptyFilter, filterTraffic } from '../src/renderer/src/services/filterTraffic';
+import { emptyFilter, filterTraffic } from '../src/shared/filterTraffic';
 import type { TrafficRecord } from '../src/shared/types';
 
 const rec = (over: Partial<TrafficRecord> = {}): TrafficRecord => ({

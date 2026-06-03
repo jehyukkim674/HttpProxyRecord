@@ -38,6 +38,13 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
     return context.recordStore.listTraffic(sessionId);
   });
 
+  // ── 설정: 캡처 제외 도메인 ──
+  ipcMain.handle('settings:get-exclude-domains', () => context.getExcludeDomains());
+
+  ipcMain.handle('settings:set-exclude-domains', (_event, domains: string[]) =>
+    context.setExcludeDomains(domains),
+  );
+
   // ── 시스템 프록시 / 인증서 ──
   ipcMain.handle('system-proxy:enable', async () => {
     const status = context.getProxyStatus();
