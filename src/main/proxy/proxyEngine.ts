@@ -3,9 +3,15 @@ import https from 'node:https';
 import net from 'node:net';
 import tls from 'node:tls';
 import type { AddressInfo } from 'node:net';
-import type { CapturedTraffic } from '../../shared/types';
+import type { CapturedTraffic, OverrideRule, ThrottleConfig } from '../../shared/types';
 import type { CertManager } from './certManager';
 import { decodeBody } from './decompress';
+import { matchOverrideRule } from '../../shared/interception';
+
+type InterceptionConfig = {
+  overrideRules: OverrideRule[];
+  throttle: ThrottleConfig;
+};
 
 export type TrafficListener = (traffic: CapturedTraffic) => void;
 
@@ -31,11 +37,20 @@ export class ProxyEngine {
   private mitmPort = 0;
   private readonly listeners: TrafficListener[] = [];
   private readonly activeSockets = new Set<net.Socket>();
+  private interception: InterceptionConfig = {
+    overrideRules: [],
+    throttle: { enabled: false, latencyMs: 0 },
+  };
 
   constructor(private readonly certManager: CertManager) {}
 
   onTraffic(listener: TrafficListener): void {
     this.listeners.push(listener);
+  }
+
+  /** 오버라이드 규칙/throttle 설정을 갱신한다 (#4 #7). */
+  setInterception(config: InterceptionConfig): void {
+    this.interception = config;
   }
 
   /** @returns 실제 리스닝 포트 (port=0이면 OS가 할당) */
@@ -175,6 +190,18 @@ export class ProxyEngine {
 
   // ─────────────────────────── 공통 중계 + 캡처 ───────────────────────────
 
+  private fullUrl(target: ForwardTarget): string {
+    const hostWithPort = `${target.hostname}${this.isDefaultPort(target) ? '' : `:${target.port}`}`;
+    return `${target.isHttps ? 'https' : 'http'}://${hostWithPort}${target.path}`;
+  }
+
+  /** throttle 설정에 따라 응답 전송을 지연시킨다 (#7). */
+  private throttleDelay(): Promise<void> {
+    const { enabled, latencyMs } = this.interception.throttle;
+    if (!enabled || latencyMs <= 0) return Promise.resolve();
+    return new Promise((resolve) => setTimeout(resolve, latencyMs));
+  }
+
   private forwardRequest(
     clientReq: http.IncomingMessage,
     clientRes: http.ServerResponse,
@@ -183,6 +210,32 @@ export class ProxyEngine {
     const startedAt = Date.now();
     const requestChunks: Buffer[] = [];
     const responseChunks: Buffer[] = [];
+
+    // #4 오버라이드: 매칭 규칙이 있으면 업스트림 없이 가짜 응답 반환
+    const override = matchOverrideRule(this.fullUrl(target), this.interception.overrideRules);
+    if (override) {
+      clientReq.on('data', (chunk: Buffer) => requestChunks.push(chunk));
+      clientReq.on('end', () => {
+        void this.throttleDelay().then(() => {
+          clientRes.writeHead(override.statusCode, { 'content-type': override.contentType });
+          clientRes.end(override.body);
+          this.emit(
+            this.buildTraffic(
+              clientReq,
+              override.statusCode,
+              { 'content-type': override.contentType },
+              target,
+              {
+                requestChunks,
+                responseChunks: [Buffer.from(override.body)],
+                startedAt,
+              },
+            ),
+          );
+        });
+      });
+      return;
+    }
 
     const outboundHeaders: Record<string, string | string[] | undefined> = { ...clientReq.headers };
     for (const headerName of HOP_BY_HOP_HEADERS) {
@@ -202,20 +255,20 @@ export class ProxyEngine {
         rejectUnauthorized: false,
       },
       (proxyRes) => {
-        clientRes.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);
-        proxyRes.on('data', (chunk: Buffer) => {
-          responseChunks.push(chunk);
-          clientRes.write(chunk);
-        });
+        // 응답을 모두 버퍼링한 뒤(throttle 지연 적용 가능) 한 번에 전송
+        proxyRes.on('data', (chunk: Buffer) => responseChunks.push(chunk));
         proxyRes.on('end', () => {
-          clientRes.end();
-          this.emit(
-            this.buildTraffic(clientReq, proxyRes.statusCode ?? 0, proxyRes.headers, target, {
-              requestChunks,
-              responseChunks,
-              startedAt,
-            }),
-          );
+          void this.throttleDelay().then(() => {
+            clientRes.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);
+            clientRes.end(Buffer.concat(responseChunks));
+            this.emit(
+              this.buildTraffic(clientReq, proxyRes.statusCode ?? 0, proxyRes.headers, target, {
+                requestChunks,
+                responseChunks,
+                startedAt,
+              }),
+            );
+          });
         });
       },
     );

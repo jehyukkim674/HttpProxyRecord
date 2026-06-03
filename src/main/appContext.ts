@@ -6,7 +6,16 @@ import { matchExcludeDomain } from './proxy/excludeFilter';
 import { RecordStore } from './store/recordStore';
 import { ReplayServer } from './replay/replayServer';
 import { SystemProxyManager } from './system/systemProxy';
-import type { CapturedTraffic, ProxyStatus, ReplayStatus, TrafficRecord } from '../shared/types';
+import type {
+  CapturedTraffic,
+  OverrideRule,
+  ProxyStatus,
+  ReplayStatus,
+  ThrottleConfig,
+  TrafficRecord,
+} from '../shared/types';
+
+const DEFAULT_THROTTLE: ThrottleConfig = { enabled: false, latencyMs: 0 };
 
 export type TrafficBroadcaster = (record: TrafficRecord) => void;
 
@@ -36,6 +45,46 @@ export class AppContext {
     this.certManager.loadOrCreateRootCa();
     this.proxyEngine.onTraffic((traffic) => this.handleTraffic(traffic));
     this.excludeDomains = this.loadExcludeDomains();
+    this.applyInterception();
+  }
+
+  // ─────────────────────────── 인터셉션 (#4 오버라이드 / #7 throttle) ───────────────────────────
+
+  private loadJson<T>(key: string, fallback: T): T {
+    const raw = this.recordStore.getSetting(key);
+    if (!raw) return fallback;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return fallback;
+    }
+  }
+
+  private applyInterception(): void {
+    this.proxyEngine.setInterception({
+      overrideRules: this.loadJson<OverrideRule[]>('overrideRules', []),
+      throttle: this.loadJson<ThrottleConfig>('throttle', DEFAULT_THROTTLE),
+    });
+  }
+
+  getOverrideRules(): OverrideRule[] {
+    return this.loadJson<OverrideRule[]>('overrideRules', []);
+  }
+
+  setOverrideRules(rules: OverrideRule[]): OverrideRule[] {
+    this.recordStore.setSetting('overrideRules', JSON.stringify(rules));
+    this.applyInterception();
+    return rules;
+  }
+
+  getThrottle(): ThrottleConfig {
+    return this.loadJson<ThrottleConfig>('throttle', DEFAULT_THROTTLE);
+  }
+
+  setThrottle(config: ThrottleConfig): ThrottleConfig {
+    this.recordStore.setSetting('throttle', JSON.stringify(config));
+    this.applyInterception();
+    return config;
   }
 
   /** Renderer로 실시간 트래픽을 보낼 콜백 등록 */

@@ -108,3 +108,17 @@ export type SnapshotVerifyResult = {
   passed: boolean;
   comparison: ResponseComparison;
 };
+
+export type OverrideRule = {
+  id: number;
+  urlPattern: string; // glob (예: */api/users)
+  statusCode: number;
+  contentType: string;
+  body: string;
+  enabled: boolean;
+};
+
+export type ThrottleConfig = {
+  enabled: boolean;
+  latencyMs: number;
+};

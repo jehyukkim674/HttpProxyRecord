@@ -1,11 +1,13 @@
 import type {
   ComposedRequest,
   ComposedResponse,
+  OverrideRule,
   ProxyStatus,
   ReplayStatus,
   Session,
   Snapshot,
   SnapshotVerifyResult,
+  ThrottleConfig,
   TrafficRecord,
 } from '../../../shared/types';
 
@@ -62,4 +64,10 @@ export const ipc = {
   exportOpenApi: (sessionId: number): Promise<{ saved: boolean; path?: string }> =>
     window.api.exportOpenApi(sessionId),
   importHar: (): Promise<{ imported: boolean; sessions?: Session[] }> => window.api.importHar(),
+
+  // 인터셉션 (#4 #7)
+  listOverrideRules: (): Promise<OverrideRule[]> => window.api.listOverrideRules(),
+  setOverrideRules: (rules: OverrideRule[]): Promise<OverrideRule[]> => window.api.setOverrideRules(rules),
+  getThrottle: (): Promise<ThrottleConfig> => window.api.getThrottle(),
+  setThrottle: (config: ThrottleConfig): Promise<ThrottleConfig> => window.api.setThrottle(config),
 };

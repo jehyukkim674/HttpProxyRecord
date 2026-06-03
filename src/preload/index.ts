@@ -2,11 +2,13 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   ComposedRequest,
   ComposedResponse,
+  OverrideRule,
   ProxyStatus,
   ReplayStatus,
   Session,
   Snapshot,
   SnapshotVerifyResult,
+  ThrottleConfig,
   TrafficRecord,
 } from '../shared/types';
 
@@ -74,6 +76,14 @@ const api = {
   exportOpenApi: (sessionId: number): Promise<{ saved: boolean; path?: string }> =>
     ipcRenderer.invoke('export:openapi', sessionId),
   importHar: (): Promise<{ imported: boolean; sessions?: Session[] }> => ipcRenderer.invoke('import:har'),
+
+  // 인터셉션 (#4 #7)
+  listOverrideRules: (): Promise<OverrideRule[]> => ipcRenderer.invoke('override:list'),
+  setOverrideRules: (rules: OverrideRule[]): Promise<OverrideRule[]> =>
+    ipcRenderer.invoke('override:set', rules),
+  getThrottle: (): Promise<ThrottleConfig> => ipcRenderer.invoke('throttle:get'),
+  setThrottle: (config: ThrottleConfig): Promise<ThrottleConfig> =>
+    ipcRenderer.invoke('throttle:set', config),
 };
 
 export type RendererApi = typeof api;

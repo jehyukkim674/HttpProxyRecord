@@ -8,7 +8,7 @@ import { parseHar } from './export/harImport';
 import { installRootCa } from './system/certInstaller';
 import { sendComposedRequest } from './composer/requestSender';
 import { verifySnapshot } from './composer/snapshotVerifier';
-import type { ComposedRequest, Session, TrafficRecord } from '../shared/types';
+import type { ComposedRequest, OverrideRule, Session, ThrottleConfig, TrafficRecord } from '../shared/types';
 
 /** 모든 IPC 채널을 등록한다. 채널 이름은 preload의 api와 1:1 대응 */
 export const registerIpcHandlers = (context: AppContext, getWindow: () => BrowserWindow | null): void => {
@@ -171,6 +171,12 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
     }
     return { imported: true, sessions: context.recordStore.listSessions() };
   });
+
+  // ── 인터셉션 (#4 오버라이드 / #7 throttle) ──
+  ipcMain.handle('override:list', () => context.getOverrideRules());
+  ipcMain.handle('override:set', (_event, rules: OverrideRule[]) => context.setOverrideRules(rules));
+  ipcMain.handle('throttle:get', () => context.getThrottle());
+  ipcMain.handle('throttle:set', (_event, config: ThrottleConfig) => context.setThrottle(config));
 
   // ── Composer (재전송/체이닝) ──
   ipcMain.handle('composer:send', (_event, request: ComposedRequest) => sendComposedRequest(request));
