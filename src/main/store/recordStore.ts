@@ -1,5 +1,16 @@
 import { DatabaseSync } from 'node:sqlite';
-import type { CapturedTraffic, Favorite, Session, Snapshot, TrafficRecord } from '../../shared/types';
+import type {
+  CapturedTraffic,
+  Favorite,
+  Guide,
+  GuideStep,
+  GuideSummary,
+  Session,
+  Snapshot,
+  TrafficRecord,
+} from '../../shared/types';
+
+type GuideRow = { id: number; title: string; data: string; created_at: string };
 
 type FavoriteRow = { id: number; method: string; url: string; note: string; created_at: string };
 
@@ -109,7 +120,55 @@ export class RecordStore {
         note TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS guides (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        data TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
     `);
+  }
+
+  // ─────────────────────────── 캡처 가이드 ───────────────────────────
+
+  private toGuide(row: GuideRow): Guide {
+    const parsed = JSON.parse(row.data) as { steps?: GuideStep[] };
+    return { id: row.id, title: row.title, steps: parsed.steps ?? [], createdAt: row.created_at };
+  }
+
+  saveGuide(input: { id?: number; title: string; steps: GuideStep[] }): Guide {
+    const data = JSON.stringify({ steps: input.steps });
+    if (input.id) {
+      this.db.prepare('UPDATE guides SET title = ?, data = ? WHERE id = ?').run(input.title, data, input.id);
+      const row = this.db.prepare('SELECT * FROM guides WHERE id = ?').get(input.id) as GuideRow;
+      return this.toGuide(row);
+    }
+    const createdAt = new Date().toISOString();
+    const result = this.db
+      .prepare('INSERT INTO guides (title, data, created_at) VALUES (?, ?, ?)')
+      .run(input.title, data, createdAt);
+    return { id: Number(result.lastInsertRowid), title: input.title, steps: input.steps, createdAt };
+  }
+
+  listGuides(): GuideSummary[] {
+    const rows = this.db
+      .prepare('SELECT id, title, data, created_at FROM guides ORDER BY id DESC')
+      .all() as unknown as GuideRow[];
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      createdAt: row.created_at,
+      stepCount: (JSON.parse(row.data) as { steps?: unknown[] }).steps?.length ?? 0,
+    }));
+  }
+
+  getGuide(id: number): Guide | null {
+    const row = this.db.prepare('SELECT * FROM guides WHERE id = ?').get(id) as GuideRow | undefined;
+    return row ? this.toGuide(row) : null;
+  }
+
+  deleteGuide(id: number): void {
+    this.db.prepare('DELETE FROM guides WHERE id = ?').run(id);
   }
 
   saveFavorite(input: { method: string; url: string; note: string }): Favorite {

@@ -147,3 +147,18 @@ export type InterceptScript = {
   code: string;
   enabled: boolean;
 };
+
+// 캡처 가이드 빌더: 스크린샷 + 번호 네모박스 주석 → 매뉴얼
+export type GuideBox = {
+  id: string;
+  x: number; // 0~1 비율 좌표(해상도 독립)
+  y: number;
+  w: number;
+  h: number;
+  number: number;
+  description: string;
+  kind: 'box' | 'blur';
+};
+export type GuideStep = { id: string; imageDataUrl: string; boxes: GuideBox[]; caption?: string };
+export type Guide = { id: number; title: string; steps: GuideStep[]; createdAt: string };
+export type GuideSummary = { id: number; title: string; createdAt: string; stepCount: number };
