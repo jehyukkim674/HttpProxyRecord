@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ConfigProvider, message } from 'antd';
+import { ConfigProvider, Segmented, message } from 'antd';
 import koKR from 'antd/locale/ko_KR';
 import { TopToolbar } from './components/TopToolbar';
 import { SessionSidebar } from './components/SessionSidebar';
@@ -8,6 +8,9 @@ import { TrafficDetail } from './components/TrafficDetail';
 import { TrafficFilterBar } from './components/TrafficFilterBar';
 import { SettingsDrawer } from './components/SettingsDrawer';
 import { ComposerModal } from './components/ComposerModal';
+import { WaterfallView } from './components/WaterfallView';
+import { SessionCompareModal } from './components/SessionCompareModal';
+import { SnapshotsDrawer } from './components/SnapshotsDrawer';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
@@ -29,6 +32,9 @@ const App = () => {
   const composerVars = useComposerVariables();
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerSeed, setComposerSeed] = useState<TrafficRecord | null>(null);
+  const [trafficView, setTrafficView] = useState<'table' | 'waterfall'>('table');
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [snapshotsOpen, setSnapshotsOpen] = useState(false);
 
   const { records } = useTraffic(selectedSessionId);
   const { filter, setFilter, filtered } = useTrafficFilter(records);
@@ -148,6 +154,14 @@ const App = () => {
     [messageApi],
   );
 
+  const handleSaveSnapshot = useCallback(
+    async (record: TrafficRecord) => {
+      await ipc.saveSnapshot(record);
+      void messageApi.success('스냅샷을 저장했어요');
+    },
+    [messageApi],
+  );
+
   return (
     <ConfigProvider locale={koKR}>
       {messageContextHolder}
@@ -161,6 +175,8 @@ const App = () => {
           onToggleSystemProxy={(enabled) => void handleToggleSystemProxy(enabled)}
           onInstallCert={() => void handleInstallCert()}
           onOpenSettings={() => setSettingsOpen(true)}
+          onOpenCompare={() => setCompareOpen(true)}
+          onOpenSnapshots={() => setSnapshotsOpen(true)}
         />
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           <SessionSidebar
@@ -179,6 +195,17 @@ const App = () => {
             onExportMarkdown={(sessionId) => void handleExportMarkdown(sessionId)}
           />
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ padding: '8px 16px 0' }}>
+              <Segmented
+                size="small"
+                value={trafficView}
+                onChange={(value) => setTrafficView(value as 'table' | 'waterfall')}
+                options={[
+                  { label: '테이블', value: 'table' },
+                  { label: '워터폴', value: 'waterfall' },
+                ]}
+              />
+            </div>
             <TrafficFilterBar
               filter={filter}
               onChange={setFilter}
@@ -186,11 +213,15 @@ const App = () => {
               shown={filtered.length}
             />
             <div style={{ flex: 1, overflow: 'auto' }}>
-              <TrafficTable
-                records={filtered}
-                selectedRecordId={selectedRecord?.id ?? null}
-                onSelect={setSelectedRecord}
-              />
+              {trafficView === 'table' ? (
+                <TrafficTable
+                  records={filtered}
+                  selectedRecordId={selectedRecord?.id ?? null}
+                  onSelect={setSelectedRecord}
+                />
+              ) : (
+                <WaterfallView records={filtered} />
+              )}
             </div>
           </div>
           <div style={{ width: 480, borderLeft: '1px solid #f0f0f0', overflow: 'hidden', flexShrink: 0 }}>
@@ -201,6 +232,7 @@ const App = () => {
                 setComposerSeed(record);
                 setComposerOpen(true);
               }}
+              onSaveSnapshot={(record) => void handleSaveSnapshot(record)}
             />
           </div>
         </div>
@@ -214,6 +246,8 @@ const App = () => {
         onRemoveVariable={composerVars.removeVariable}
         onClose={() => setComposerOpen(false)}
       />
+      <SessionCompareModal open={compareOpen} sessions={sessions} onClose={() => setCompareOpen(false)} />
+      <SnapshotsDrawer open={snapshotsOpen} onClose={() => setSnapshotsOpen(false)} />
     </ConfigProvider>
   );
 };

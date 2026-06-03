@@ -4,6 +4,8 @@ import type {
   ProxyStatus,
   ReplayStatus,
   Session,
+  Snapshot,
+  SnapshotVerifyResult,
   TrafficRecord,
 } from '../../../shared/types';
 
@@ -46,4 +48,10 @@ export const ipc = {
 
   // Composer (재전송/체이닝)
   composerSend: (request: ComposedRequest): Promise<ComposedResponse> => window.api.composerSend(request),
+
+  // 스냅샷 (#26)
+  saveSnapshot: (record: TrafficRecord): Promise<Snapshot> => window.api.saveSnapshot(record),
+  listSnapshots: (): Promise<Snapshot[]> => window.api.listSnapshots(),
+  deleteSnapshot: (id: number): Promise<Snapshot[]> => window.api.deleteSnapshot(id),
+  verifySnapshot: (id: number): Promise<SnapshotVerifyResult> => window.api.verifySnapshot(id),
 };

@@ -1,5 +1,5 @@
 import { Button, Descriptions, Empty, Space, Table, Tabs, Typography } from 'antd';
-import { CopyOutlined, SendOutlined } from '@ant-design/icons';
+import { CameraOutlined, CopyOutlined, SendOutlined } from '@ant-design/icons';
 import type { TrafficRecord } from '../../../shared/types';
 import { BodyViewer } from './BodyViewer';
 
@@ -7,6 +7,7 @@ type TrafficDetailProps = {
   record: TrafficRecord | null;
   onCopyCurl: (recordId: number) => void;
   onResend: (record: TrafficRecord) => void;
+  onSaveSnapshot: (record: TrafficRecord) => void;
 };
 
 const HeaderTable = ({ headers }: { headers: Record<string, string> }) => (
@@ -22,7 +23,7 @@ const HeaderTable = ({ headers }: { headers: Record<string, string> }) => (
   />
 );
 
-export const TrafficDetail = ({ record, onCopyCurl, onResend }: TrafficDetailProps) => {
+export const TrafficDetail = ({ record, onCopyCurl, onResend, onSaveSnapshot }: TrafficDetailProps) => {
   if (!record) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -42,6 +43,9 @@ export const TrafficDetail = ({ record, onCopyCurl, onResend }: TrafficDetailPro
         </Button>
         <Button size="small" icon={<SendOutlined />} onClick={() => onResend(record)}>
           재전송
+        </Button>
+        <Button size="small" icon={<CameraOutlined />} onClick={() => onSaveSnapshot(record)}>
+          스냅샷 저장
         </Button>
       </Space>
       <Descriptions size="small" column={2} style={{ marginBottom: 16 }}>

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Alert, Button, Input, Space, Switch, Tag } from 'antd';
 import {
+  CameraOutlined,
+  DiffOutlined,
   PlayCircleOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
@@ -17,6 +19,8 @@ type TopToolbarProps = {
   onToggleSystemProxy: (enabled: boolean) => void;
   onInstallCert: () => void;
   onOpenSettings: () => void;
+  onOpenCompare: () => void;
+  onOpenSnapshots: () => void;
 };
 
 export const TopToolbar = ({
@@ -28,6 +32,8 @@ export const TopToolbar = ({
   onToggleSystemProxy,
   onInstallCert,
   onOpenSettings,
+  onOpenCompare,
+  onOpenSnapshots,
 }: TopToolbarProps) => {
   const [sessionName, setSessionName] = useState('');
 
@@ -70,6 +76,12 @@ export const TopToolbar = ({
         />
         <Button icon={<SafetyCertificateOutlined />} onClick={onInstallCert}>
           인증서 설치
+        </Button>
+        <Button icon={<DiffOutlined />} onClick={onOpenCompare}>
+          세션 비교
+        </Button>
+        <Button icon={<CameraOutlined />} onClick={onOpenSnapshots}>
+          스냅샷
         </Button>
         <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
           설정

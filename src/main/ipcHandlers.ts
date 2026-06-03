@@ -5,7 +5,8 @@ import type { AppContext } from './appContext';
 import { toCurl, toHar, toMarkdown } from './export/exporter';
 import { installRootCa } from './system/certInstaller';
 import { sendComposedRequest } from './composer/requestSender';
-import type { ComposedRequest } from '../shared/types';
+import { verifySnapshot } from './composer/snapshotVerifier';
+import type { ComposedRequest, TrafficRecord } from '../shared/types';
 
 /** 모든 IPC 채널을 등록한다. 채널 이름은 preload의 api와 1:1 대응 */
 export const registerIpcHandlers = (context: AppContext, getWindow: () => BrowserWindow | null): void => {
@@ -119,4 +120,25 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
 
   // ── Composer (재전송/체이닝) ──
   ipcMain.handle('composer:send', (_event, request: ComposedRequest) => sendComposedRequest(request));
+
+  // ── 스냅샷 (#26) ──
+  ipcMain.handle('snapshot:save', (_event, record: TrafficRecord) =>
+    context.recordStore.saveSnapshot({
+      method: record.method,
+      path: record.path,
+      url: record.url,
+      statusCode: record.statusCode,
+      body: record.responseBody ?? '',
+    }),
+  );
+  ipcMain.handle('snapshot:list', () => context.recordStore.listSnapshots());
+  ipcMain.handle('snapshot:delete', (_event, id: number) => {
+    context.recordStore.deleteSnapshot(id);
+    return context.recordStore.listSnapshots();
+  });
+  ipcMain.handle('snapshot:verify', (_event, id: number) => {
+    const snapshot = context.recordStore.getSnapshotById(id);
+    if (!snapshot) throw new Error('스냅샷을 찾을 수 없어요.');
+    return verifySnapshot(snapshot);
+  });
 };

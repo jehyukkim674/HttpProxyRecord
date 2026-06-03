@@ -5,6 +5,8 @@ import type {
   ProxyStatus,
   ReplayStatus,
   Session,
+  Snapshot,
+  SnapshotVerifyResult,
   TrafficRecord,
 } from '../shared/types';
 
@@ -57,6 +59,12 @@ const api = {
   // Composer (재전송/체이닝)
   composerSend: (request: ComposedRequest): Promise<ComposedResponse> =>
     ipcRenderer.invoke('composer:send', request),
+
+  // 스냅샷 (#26)
+  saveSnapshot: (record: TrafficRecord): Promise<Snapshot> => ipcRenderer.invoke('snapshot:save', record),
+  listSnapshots: (): Promise<Snapshot[]> => ipcRenderer.invoke('snapshot:list'),
+  deleteSnapshot: (id: number): Promise<Snapshot[]> => ipcRenderer.invoke('snapshot:delete', id),
+  verifySnapshot: (id: number): Promise<SnapshotVerifyResult> => ipcRenderer.invoke('snapshot:verify', id),
 };
 
 export type RendererApi = typeof api;
