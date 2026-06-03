@@ -5,9 +5,11 @@ import { TopToolbar } from './components/TopToolbar';
 import { SessionSidebar } from './components/SessionSidebar';
 import { TrafficTable } from './components/TrafficTable';
 import { TrafficDetail } from './components/TrafficDetail';
+import { TrafficFilterBar } from './components/TrafficFilterBar';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
+import { useTrafficFilter } from './hooks/useTrafficFilter';
 import { ipc } from './services/ipc';
 import type { ReplayStatus, TrafficRecord } from '../../shared/types';
 
@@ -22,6 +24,7 @@ const App = () => {
   const [replayStatus, setReplayStatus] = useState<ReplayStatus | null>(null);
 
   const { records } = useTraffic(selectedSessionId);
+  const { filter, setFilter, filtered } = useTrafficFilter(records);
 
   const handleRecordingChanged = useCallback(() => {
     void reload();
@@ -167,12 +170,20 @@ const App = () => {
             onExportHar={(sessionId) => void handleExportHar(sessionId)}
             onExportMarkdown={(sessionId) => void handleExportMarkdown(sessionId)}
           />
-          <div style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
-            <TrafficTable
-              records={records}
-              selectedRecordId={selectedRecord?.id ?? null}
-              onSelect={setSelectedRecord}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <TrafficFilterBar
+              filter={filter}
+              onChange={setFilter}
+              total={records.length}
+              shown={filtered.length}
             />
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <TrafficTable
+                records={filtered}
+                selectedRecordId={selectedRecord?.id ?? null}
+                onSelect={setSelectedRecord}
+              />
+            </div>
           </div>
           <div style={{ width: 480, borderLeft: '1px solid #f0f0f0', overflow: 'hidden', flexShrink: 0 }}>
             <TrafficDetail record={selectedRecord} onCopyCurl={(recordId) => void handleCopyCurl(recordId)} />
