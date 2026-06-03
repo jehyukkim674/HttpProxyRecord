@@ -54,4 +54,12 @@ export const ipc = {
   listSnapshots: (): Promise<Snapshot[]> => window.api.listSnapshots(),
   deleteSnapshot: (id: number): Promise<Snapshot[]> => window.api.deleteSnapshot(id),
   verifySnapshot: (id: number): Promise<SnapshotVerifyResult> => window.api.verifySnapshot(id),
+
+  // 내보내기/가져오기 확장 (Phase 5)
+  copyToClipboard: (text: string): Promise<{ copied: boolean }> => window.api.copyToClipboard(text),
+  exportPostman: (sessionId: number): Promise<{ saved: boolean; path?: string }> =>
+    window.api.exportPostman(sessionId),
+  exportOpenApi: (sessionId: number): Promise<{ saved: boolean; path?: string }> =>
+    window.api.exportOpenApi(sessionId),
+  importHar: (): Promise<{ imported: boolean; sessions?: Session[] }> => window.api.importHar(),
 };

@@ -4,6 +4,7 @@ import {
   BulbOutlined,
   CameraOutlined,
   DiffOutlined,
+  ImportOutlined,
   PlayCircleOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
@@ -22,6 +23,7 @@ type TopToolbarProps = {
   onOpenSettings: () => void;
   onOpenCompare: () => void;
   onOpenSnapshots: () => void;
+  onImportHar: () => void;
   darkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
 };
@@ -37,6 +39,7 @@ export const TopToolbar = ({
   onOpenSettings,
   onOpenCompare,
   onOpenSnapshots,
+  onImportHar,
   darkMode,
   onToggleDarkMode,
 }: TopToolbarProps) => {
@@ -87,6 +90,9 @@ export const TopToolbar = ({
         </Button>
         <Button icon={<CameraOutlined />} onClick={onOpenSnapshots}>
           스냅샷
+        </Button>
+        <Button icon={<ImportOutlined />} onClick={onImportHar}>
+          HAR 가져오기
         </Button>
         <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
           설정

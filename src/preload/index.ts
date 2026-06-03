@@ -65,6 +65,15 @@ const api = {
   listSnapshots: (): Promise<Snapshot[]> => ipcRenderer.invoke('snapshot:list'),
   deleteSnapshot: (id: number): Promise<Snapshot[]> => ipcRenderer.invoke('snapshot:delete', id),
   verifySnapshot: (id: number): Promise<SnapshotVerifyResult> => ipcRenderer.invoke('snapshot:verify', id),
+
+  // 내보내기/가져오기 확장 (Phase 5)
+  copyToClipboard: (text: string): Promise<{ copied: boolean }> =>
+    ipcRenderer.invoke('clipboard:write', text),
+  exportPostman: (sessionId: number): Promise<{ saved: boolean; path?: string }> =>
+    ipcRenderer.invoke('export:postman', sessionId),
+  exportOpenApi: (sessionId: number): Promise<{ saved: boolean; path?: string }> =>
+    ipcRenderer.invoke('export:openapi', sessionId),
+  importHar: (): Promise<{ imported: boolean; sessions?: Session[] }> => ipcRenderer.invoke('import:har'),
 };
 
 export type RendererApi = typeof api;

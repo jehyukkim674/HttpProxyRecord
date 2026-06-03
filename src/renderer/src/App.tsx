@@ -11,6 +11,7 @@ import { ComposerModal } from './components/ComposerModal';
 import { WaterfallView } from './components/WaterfallView';
 import { SessionCompareModal } from './components/SessionCompareModal';
 import { SnapshotsDrawer } from './components/SnapshotsDrawer';
+import { RequestDiffModal } from './components/RequestDiffModal';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
@@ -36,6 +37,9 @@ const App = () => {
   const [compareOpen, setCompareOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [diffA, setDiffA] = useState<TrafficRecord | null>(null);
+  const [diffB, setDiffB] = useState<TrafficRecord | null>(null);
+  const [diffOpen, setDiffOpen] = useState(false);
 
   const { records } = useTraffic(selectedSessionId);
   const { filter, setFilter, filtered } = useTrafficFilter(records);
@@ -163,6 +167,53 @@ const App = () => {
     [messageApi],
   );
 
+  const handleCopySnippet = useCallback(
+    async (text: string, label: string) => {
+      await ipc.copyToClipboard(text);
+      void messageApi.success(`${label} 코드를 복사했어요`);
+    },
+    [messageApi],
+  );
+
+  const handlePickDiff = useCallback(
+    (record: TrafficRecord) => {
+      setDiffA((previousA) => {
+        if (!previousA) {
+          void messageApi.info('A로 담았어요. 다른 요청을 한 번 더 담으면 비교됩니다');
+          return record;
+        }
+        setDiffB(record);
+        setDiffOpen(true);
+        return previousA;
+      });
+    },
+    [messageApi],
+  );
+
+  const handleExportPostman = useCallback(
+    async (sessionId: number) => {
+      const result = await ipc.exportPostman(sessionId);
+      if (result.saved) void messageApi.success(`Postman 컬렉션 저장: ${result.path}`);
+    },
+    [messageApi],
+  );
+
+  const handleExportOpenApi = useCallback(
+    async (sessionId: number) => {
+      const result = await ipc.exportOpenApi(sessionId);
+      if (result.saved) void messageApi.success(`OpenAPI 스펙 저장: ${result.path}`);
+    },
+    [messageApi],
+  );
+
+  const handleImportHar = useCallback(async () => {
+    const result = await ipc.importHar();
+    if (result.imported) {
+      await reload();
+      void messageApi.success('HAR을 새 세션으로 가져왔어요');
+    }
+  }, [messageApi, reload]);
+
   return (
     <ConfigProvider
       locale={koKR}
@@ -181,6 +232,7 @@ const App = () => {
           onOpenSettings={() => setSettingsOpen(true)}
           onOpenCompare={() => setCompareOpen(true)}
           onOpenSnapshots={() => setSnapshotsOpen(true)}
+          onImportHar={() => void handleImportHar()}
           darkMode={darkMode}
           onToggleDarkMode={setDarkMode}
         />
@@ -199,6 +251,8 @@ const App = () => {
             onStopReplay={() => void handleStopReplay()}
             onExportHar={(sessionId) => void handleExportHar(sessionId)}
             onExportMarkdown={(sessionId) => void handleExportMarkdown(sessionId)}
+            onExportPostman={(sessionId) => void handleExportPostman(sessionId)}
+            onExportOpenApi={(sessionId) => void handleExportOpenApi(sessionId)}
           />
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ padding: '8px 16px 0' }}>
@@ -234,11 +288,13 @@ const App = () => {
             <TrafficDetail
               record={selectedRecord}
               onCopyCurl={(recordId) => void handleCopyCurl(recordId)}
+              onCopySnippet={(text, label) => void handleCopySnippet(text, label)}
               onResend={(record) => {
                 setComposerSeed(record);
                 setComposerOpen(true);
               }}
               onSaveSnapshot={(record) => void handleSaveSnapshot(record)}
+              onPickDiff={handlePickDiff}
             />
           </div>
         </div>
@@ -254,6 +310,16 @@ const App = () => {
       />
       <SessionCompareModal open={compareOpen} sessions={sessions} onClose={() => setCompareOpen(false)} />
       <SnapshotsDrawer open={snapshotsOpen} onClose={() => setSnapshotsOpen(false)} />
+      <RequestDiffModal
+        open={diffOpen}
+        recordA={diffA}
+        recordB={diffB}
+        onClose={() => {
+          setDiffOpen(false);
+          setDiffA(null);
+          setDiffB(null);
+        }}
+      />
     </ConfigProvider>
   );
 };

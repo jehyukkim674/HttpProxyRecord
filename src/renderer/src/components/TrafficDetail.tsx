@@ -1,8 +1,9 @@
-import { Button, Descriptions, Empty, Space, Table, Tabs, Tag, Typography } from 'antd';
-import { CameraOutlined, CopyOutlined, SendOutlined } from '@ant-design/icons';
+import { Button, Descriptions, Dropdown, Empty, Space, Table, Tabs, Tag, Typography } from 'antd';
+import { CameraOutlined, CodeOutlined, CopyOutlined, DiffOutlined, SendOutlined } from '@ant-design/icons';
 import type { TrafficRecord } from '../../../shared/types';
 import { decodeJwt, findBearerToken } from '../../../shared/jwt';
 import { parseCookieHeader } from '../../../shared/cookies';
+import { toFetch, toGoSnippet, toPythonRequests } from '../../../shared/snippets';
 import { BodyViewer } from './BodyViewer';
 
 const SecurityTab = ({ record }: { record: TrafficRecord }) => {
@@ -52,8 +53,10 @@ const SecurityTab = ({ record }: { record: TrafficRecord }) => {
 type TrafficDetailProps = {
   record: TrafficRecord | null;
   onCopyCurl: (recordId: number) => void;
+  onCopySnippet: (text: string, label: string) => void;
   onResend: (record: TrafficRecord) => void;
   onSaveSnapshot: (record: TrafficRecord) => void;
+  onPickDiff: (record: TrafficRecord) => void;
 };
 
 const HeaderTable = ({ headers }: { headers: Record<string, string> }) => (
@@ -69,7 +72,14 @@ const HeaderTable = ({ headers }: { headers: Record<string, string> }) => (
   />
 );
 
-export const TrafficDetail = ({ record, onCopyCurl, onResend, onSaveSnapshot }: TrafficDetailProps) => {
+export const TrafficDetail = ({
+  record,
+  onCopyCurl,
+  onCopySnippet,
+  onResend,
+  onSaveSnapshot,
+  onPickDiff,
+}: TrafficDetailProps) => {
   if (!record) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -83,15 +93,36 @@ export const TrafficDetail = ({ record, onCopyCurl, onResend, onSaveSnapshot }: 
       <Typography.Title level={5} style={{ wordBreak: 'break-all', marginTop: 0 }}>
         {record.method} {record.url}
       </Typography.Title>
-      <Space style={{ marginBottom: 12 }}>
+      <Space style={{ marginBottom: 12 }} wrap>
         <Button size="small" icon={<CopyOutlined />} onClick={() => onCopyCurl(record.id)}>
           curl 복사
         </Button>
+        <Dropdown
+          menu={{
+            items: [
+              { key: 'python', label: 'Python (requests)' },
+              { key: 'fetch', label: 'JavaScript (fetch)' },
+              { key: 'go', label: 'Go (net/http)' },
+            ],
+            onClick: ({ key }) => {
+              if (key === 'python') onCopySnippet(toPythonRequests(record), 'Python');
+              if (key === 'fetch') onCopySnippet(toFetch(record), 'fetch');
+              if (key === 'go') onCopySnippet(toGoSnippet(record), 'Go');
+            },
+          }}
+        >
+          <Button size="small" icon={<CodeOutlined />}>
+            코드 복사
+          </Button>
+        </Dropdown>
         <Button size="small" icon={<SendOutlined />} onClick={() => onResend(record)}>
           재전송
         </Button>
         <Button size="small" icon={<CameraOutlined />} onClick={() => onSaveSnapshot(record)}>
           스냅샷 저장
+        </Button>
+        <Button size="small" icon={<DiffOutlined />} onClick={() => onPickDiff(record)}>
+          비교 담기
         </Button>
       </Space>
       <Descriptions size="small" column={2} style={{ marginBottom: 16 }}>

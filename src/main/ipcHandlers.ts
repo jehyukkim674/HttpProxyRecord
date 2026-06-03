@@ -3,10 +3,12 @@ import fs from 'node:fs';
 import type { BrowserWindow } from 'electron';
 import type { AppContext } from './appContext';
 import { toCurl, toHar, toMarkdown } from './export/exporter';
+import { toOpenApi, toPostmanCollection } from './export/postmanOpenApi';
+import { parseHar } from './export/harImport';
 import { installRootCa } from './system/certInstaller';
 import { sendComposedRequest } from './composer/requestSender';
 import { verifySnapshot } from './composer/snapshotVerifier';
-import type { ComposedRequest, TrafficRecord } from '../shared/types';
+import type { ComposedRequest, Session, TrafficRecord } from '../shared/types';
 
 /** 모든 IPC 채널을 등록한다. 채널 이름은 preload의 api와 1:1 대응 */
 export const registerIpcHandlers = (context: AppContext, getWindow: () => BrowserWindow | null): void => {
@@ -116,6 +118,58 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
     const curl = toCurl(record);
     clipboard.writeText(curl);
     return { copied: true };
+  });
+
+  // 임의 텍스트 클립보드 복사 (코드 스니펫 등)
+  ipcMain.handle('clipboard:write', (_event, text: string) => {
+    clipboard.writeText(text);
+    return { copied: true };
+  });
+
+  // Postman Collection 내보내기
+  ipcMain.handle('export:postman', async (_event, sessionId: number) => {
+    const records = context.recordStore.listTraffic(sessionId);
+    const session = context.recordStore.listSessions().find((s) => s.id === sessionId);
+    const result = await dialog.showSaveDialog({
+      defaultPath: `session-${sessionId}.postman_collection.json`,
+      filters: [{ name: 'Postman', extensions: ['json'] }],
+    });
+    if (result.canceled || !result.filePath) return { saved: false };
+    fs.writeFileSync(
+      result.filePath,
+      JSON.stringify(toPostmanCollection(session?.name ?? '세션', records), null, 2),
+    );
+    return { saved: true, path: result.filePath };
+  });
+
+  // OpenAPI 스펙 내보내기 (swagger-man 연동)
+  ipcMain.handle('export:openapi', async (_event, sessionId: number) => {
+    const records = context.recordStore.listTraffic(sessionId);
+    const result = await dialog.showSaveDialog({
+      defaultPath: `session-${sessionId}.openapi.json`,
+      filters: [{ name: 'OpenAPI', extensions: ['json'] }],
+    });
+    if (result.canceled || !result.filePath) return { saved: false };
+    fs.writeFileSync(result.filePath, JSON.stringify(toOpenApi(records), null, 2));
+    return { saved: true, path: result.filePath };
+  });
+
+  // HAR 가져오기 → 새 세션 생성
+  ipcMain.handle('import:har', async (): Promise<{ imported: boolean; sessions?: Session[] }> => {
+    const result = await dialog.showOpenDialog({
+      filters: [{ name: 'HAR', extensions: ['har', 'json'] }],
+      properties: ['openFile'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return { imported: false };
+
+    const raw = fs.readFileSync(result.filePaths[0], 'utf-8');
+    const traffic = parseHar(raw);
+    const fileName = result.filePaths[0].split('/').pop() ?? 'imported.har';
+    const session = context.recordStore.createSession(`가져옴: ${fileName}`);
+    for (const item of traffic) {
+      context.recordStore.insertTraffic(session.id, item);
+    }
+    return { imported: true, sessions: context.recordStore.listSessions() };
   });
 
   // ── Composer (재전송/체이닝) ──
