@@ -54,6 +54,22 @@ export const useExportActions = (messageApi: MessageApi, reload: () => Promise<v
     }
   }, [messageApi, reload]);
 
+  const exportBundle = useCallback(
+    async (sessionId: number) => {
+      const result = await ipc.exportBundle(sessionId);
+      if (result.saved) void messageApi.success(`세션 번들 저장: ${result.path}`);
+    },
+    [messageApi],
+  );
+
+  const importBundle = useCallback(async () => {
+    const result = await ipc.importBundle();
+    if (result.imported) {
+      await reload();
+      void messageApi.success('세션 번들을 가져왔어요');
+    }
+  }, [messageApi, reload]);
+
   const copyCurl = useCallback(
     async (recordId: number) => {
       await ipc.copyCurl(recordId);
@@ -77,6 +93,8 @@ export const useExportActions = (messageApi: MessageApi, reload: () => Promise<v
     exportOpenApi,
     exportK6,
     importHar,
+    exportBundle,
+    importBundle,
     copyCurl,
     copySnippet,
   };

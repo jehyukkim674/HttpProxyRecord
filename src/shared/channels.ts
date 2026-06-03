@@ -46,7 +46,9 @@ export const CH = {
   exportOpenApi: 'export:openapi',
   exportK6: 'export:k6',
   exportCurl: 'export:curl',
+  exportBundle: 'export:bundle',
   importHar: 'import:har',
+  importBundle: 'import:bundle',
   clipboardWrite: 'clipboard:write',
 
   // composerSnapshotHandlers — Composer 재전송, 스냅샷, 즐겨찾기

@@ -81,6 +81,10 @@ const api = {
   exportOpenApi: (sessionId: number): Promise<{ saved: boolean; path?: string }> =>
     ipcRenderer.invoke(CH.exportOpenApi, sessionId),
   importHar: (): Promise<{ imported: boolean; sessions?: Session[] }> => ipcRenderer.invoke(CH.importHar),
+  exportBundle: (sessionId: number): Promise<{ saved: boolean; path?: string }> =>
+    ipcRenderer.invoke(CH.exportBundle, sessionId),
+  importBundle: (): Promise<{ imported: boolean; sessions?: Session[] }> =>
+    ipcRenderer.invoke(CH.importBundle),
 
   // 인터셉션 (#4 #7)
   listOverrideRules: (): Promise<OverrideRule[]> => ipcRenderer.invoke(CH.overrideList),

@@ -7,7 +7,7 @@ import { parseHar } from '../export/harImport';
 import { toK6Script } from '../../shared/loadtest';
 import { CH } from '../../shared/channels';
 import { handle } from './handle';
-import type { Session } from '../../shared/types';
+import type { CapturedTraffic, Session, TrafficRecord } from '../../shared/types';
 
 /** 세션 단위 파일 저장 다이얼로그 공통 처리. */
 const saveToFile = async (
@@ -79,6 +79,42 @@ export const registerExportHandlers = (context: AppContext): void => {
   handle(CH.clipboardWrite, (_event, text: string) => {
     clipboard.writeText(text);
     return { copied: true };
+  });
+
+  // 세션 번들(.hpr) 내보내기 — 전체 충실도 JSON (#28)
+  handle(CH.exportBundle, (_event, sessionId: number) =>
+    saveToFile(
+      context,
+      sessionId,
+      `session-${sessionId}.hpr.json`,
+      { name: 'HttpProxyRecord 번들', extensions: ['json'] },
+      (id) => {
+        const session = context.recordStore.listSessions().find((item) => item.id === id) ?? null;
+        return JSON.stringify({ version: 1, session, records: context.recordStore.listTraffic(id) }, null, 2);
+      },
+    ),
+  );
+
+  // 세션 번들 가져오기 → 새 세션 (#28)
+  handle(CH.importBundle, async (): Promise<{ imported: boolean; sessions?: Session[] }> => {
+    const result = await dialog.showOpenDialog({
+      filters: [{ name: 'HttpProxyRecord 번들', extensions: ['json', 'hpr'] }],
+      properties: ['openFile'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return { imported: false };
+
+    const parsed = JSON.parse(fs.readFileSync(result.filePaths[0], 'utf-8')) as {
+      session?: { name?: string };
+      records?: TrafficRecord[];
+    };
+    const session = context.recordStore.createSession(`번들: ${parsed.session?.name ?? '가져옴'}`);
+    for (const record of parsed.records ?? []) {
+      const captured = { ...record } as Partial<TrafficRecord>;
+      delete captured.id;
+      delete captured.sessionId;
+      context.recordStore.insertTraffic(session.id, captured as CapturedTraffic);
+    }
+    return { imported: true, sessions: context.recordStore.listSessions() };
   });
 
   // HAR 가져오기 → 새 세션 (#15)

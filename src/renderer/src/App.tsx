@@ -91,6 +91,21 @@ const App = () => {
       { id: 'analysis', label: '세션 분석', keywords: 'analysis security', run: () => setAnalysisOpen(true) },
       { id: 'sequence', label: '시퀀스 다이어그램', keywords: 'mermaid', run: () => setSequenceOpen(true) },
       { id: 'import', label: 'HAR 가져오기', keywords: 'import har', run: () => void exporter.importHar() },
+      {
+        id: 'export-bundle',
+        label: '세션 번들 내보내기',
+        keywords: 'export bundle hpr share',
+        run: () => {
+          if (selectedSessionId != null) void exporter.exportBundle(selectedSessionId);
+          else void messageApi.info('세션을 먼저 선택하세요');
+        },
+      },
+      {
+        id: 'import-bundle',
+        label: '세션 번들 가져오기',
+        keywords: 'import bundle hpr',
+        run: () => void exporter.importBundle(),
+      },
       { id: 'ai-report', label: 'AI 세션 리포트', keywords: 'ai report', run: () => ai.report() },
       { id: 'ai-anomalies', label: 'AI 이상 탐지', keywords: 'ai anomaly', run: () => ai.anomalies() },
       { id: 'ai-search', label: 'AI 검색', keywords: 'ai search', run: () => ai.setSearchOpen(true) },
@@ -101,7 +116,7 @@ const App = () => {
         run: () => setDarkMode((value) => !value),
       },
     ],
-    [exporter, ai],
+    [exporter, ai, selectedSessionId, messageApi],
   );
 
   const handleRecordingChanged = useCallback(() => {
