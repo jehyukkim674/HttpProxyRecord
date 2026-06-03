@@ -1,5 +1,6 @@
 import { app, Notification } from 'electron';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { CertManager } from './proxy/certManager';
 import { ProxyEngine } from './proxy/proxyEngine';
 import type { BreakpointHit } from './proxy/proxyEngine';
@@ -10,9 +11,12 @@ import { ReplayServer } from './replay/replayServer';
 import { SystemProxyManager } from './system/systemProxy';
 import { SettingsStore } from './settings';
 import type { AlertRule, ReplayOptions } from './settings';
+import { ScriptRunner } from './scripting/scriptRunner';
+import type { ScriptLog } from './scripting/scriptRunner';
 import { log } from './logger';
 import type {
   CapturedTraffic,
+  InterceptScript,
   OverrideRule,
   ProxyStatus,
   ReplayStatus,
@@ -32,6 +36,7 @@ export class AppContext {
   readonly recordStore: RecordStore;
   readonly proxyEngine: ProxyEngine;
   readonly settings: SettingsStore;
+  readonly scriptRunner: ScriptRunner;
   readonly replayServer = new ReplayServer();
   readonly systemProxyManager = new SystemProxyManager();
   readonly aiService = new AIService(() => this.settings.getAiApiKey());
@@ -41,6 +46,7 @@ export class AppContext {
   private replaySessionId: number | null = null;
   private broadcaster: TrafficBroadcaster | null = null;
   private breakpointBroadcaster: ((hit: BreakpointHit) => void) | null = null;
+  private scriptLogBroadcaster: ((entry: ScriptLog) => void) | null = null;
   private excludeDomains: string[] = [];
 
   constructor() {
@@ -49,12 +55,54 @@ export class AppContext {
     this.recordStore = new RecordStore(path.join(userDataDir, 'records.db'));
     this.settings = new SettingsStore(this.recordStore);
     this.proxyEngine = new ProxyEngine(this.certManager);
+    this.scriptRunner = new ScriptRunner((entry) => this.scriptLogBroadcaster?.(entry));
+    this.proxyEngine.setScriptRunner(this.scriptRunner);
 
     this.certManager.loadOrCreateRootCa();
     this.proxyEngine.onTraffic((traffic) => this.handleTraffic(traffic));
     this.proxyEngine.onBreakpoint((hit) => this.breakpointBroadcaster?.(hit));
     this.excludeDomains = this.settings.getExcludeDomains();
     this.applyInterception();
+    this.scriptRunner.setScripts(this.settings.getScripts());
+  }
+
+  setScriptLogBroadcaster(broadcaster: (entry: ScriptLog) => void): void {
+    this.scriptLogBroadcaster = broadcaster;
+  }
+
+  // ─────────────────────────── 스크립트 인터셉션 ───────────────────────────
+
+  getScripts(): InterceptScript[] {
+    return this.settings.getScripts();
+  }
+
+  saveScript(input: { id?: string; name: string; code: string; enabled: boolean }): InterceptScript[] {
+    const scripts = this.settings.getScripts();
+    if (input.id) {
+      const idx = scripts.findIndex((s) => s.id === input.id);
+      if (idx >= 0) {
+        scripts[idx] = { ...scripts[idx], name: input.name, code: input.code, enabled: input.enabled };
+      }
+    } else {
+      scripts.push({ id: randomUUID(), name: input.name, code: input.code, enabled: input.enabled });
+    }
+    this.settings.setScripts(scripts);
+    this.scriptRunner.setScripts(scripts);
+    return scripts;
+  }
+
+  deleteScript(id: string): InterceptScript[] {
+    const scripts = this.settings.getScripts().filter((s) => s.id !== id);
+    this.settings.setScripts(scripts);
+    this.scriptRunner.setScripts(scripts);
+    return scripts;
+  }
+
+  toggleScript(id: string, enabled: boolean): InterceptScript[] {
+    const scripts = this.settings.getScripts().map((s) => (s.id === id ? { ...s, enabled } : s));
+    this.settings.setScripts(scripts);
+    this.scriptRunner.setScripts(scripts);
+    return scripts;
   }
 
   setBreakpointBroadcaster(broadcaster: (hit: BreakpointHit) => void): void {

@@ -67,10 +67,17 @@ export const CH = {
   aiGenerateTests: 'ai:generate-tests',
   aiDetectAnomalies: 'ai:detect-anomalies',
   aiSearch: 'ai:search',
+
+  // scriptHandlers — 스크립트 인터셉션
+  scriptList: 'script:list',
+  scriptSave: 'script:save',
+  scriptDelete: 'script:delete',
+  scriptToggle: 'script:toggle',
 } as const;
 
 /** Main→Renderer 단방향 푸시 이벤트 (`webContents.send` / `ipcRenderer.on`) */
 export const EV = {
   traffic: 'traffic:new',
   breakpointHit: 'breakpoint:hit',
+  scriptLog: 'script:log',
 } as const;

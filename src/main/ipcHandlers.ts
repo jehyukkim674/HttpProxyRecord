@@ -6,6 +6,7 @@ import { registerReplayInterceptionHandlers } from './ipc/replayInterceptionHand
 import { registerExportHandlers } from './ipc/exportHandlers';
 import { registerComposerSnapshotHandlers } from './ipc/composerSnapshotHandlers';
 import { registerAiHandlers } from './ipc/aiHandlers';
+import { registerScriptHandlers } from './ipc/scriptHandlers';
 
 /**
  * 모든 IPC 채널을 등록한다.
@@ -19,10 +20,14 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
   context.setBreakpointBroadcaster((hit) => {
     getWindow()?.webContents.send(EV.breakpointHit, hit);
   });
+  context.setScriptLogBroadcaster((entry) => {
+    getWindow()?.webContents.send(EV.scriptLog, entry);
+  });
 
   registerRecordingHandlers(context);
   registerReplayInterceptionHandlers(context);
   registerExportHandlers(context);
   registerComposerSnapshotHandlers(context);
   registerAiHandlers(context);
+  registerScriptHandlers(context);
 };

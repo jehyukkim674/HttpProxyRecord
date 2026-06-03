@@ -4,6 +4,7 @@ import type {
   ComposedRequest,
   ComposedResponse,
   Favorite,
+  InterceptScript,
   OverrideRule,
   ProxyStatus,
   ReplayStatus,
@@ -137,6 +138,28 @@ const api = {
     ipcRenderer.invoke(CH.aiDetectAnomalies, sessionId),
   aiSearch: (sessionId: number, query: string): Promise<number[]> =>
     ipcRenderer.invoke(CH.aiSearch, sessionId, query),
+
+  // 스크립트 인터셉션
+  listScripts: (): Promise<InterceptScript[]> => ipcRenderer.invoke(CH.scriptList),
+  saveScript: (input: {
+    id?: string;
+    name: string;
+    code: string;
+    enabled: boolean;
+  }): Promise<InterceptScript[]> => ipcRenderer.invoke(CH.scriptSave, input),
+  deleteScript: (id: string): Promise<InterceptScript[]> => ipcRenderer.invoke(CH.scriptDelete, id),
+  toggleScript: (id: string, enabled: boolean): Promise<InterceptScript[]> =>
+    ipcRenderer.invoke(CH.scriptToggle, id, enabled),
+  onScriptLog: (
+    callback: (entry: { scriptId: string; level: string; message: string }) => void,
+  ): (() => void) => {
+    const listener = (_event: unknown, entry: { scriptId: string; level: string; message: string }): void =>
+      callback(entry);
+    ipcRenderer.on(EV.scriptLog, listener);
+    return () => {
+      ipcRenderer.removeListener(EV.scriptLog, listener);
+    };
+  },
 };
 
 export type RendererApi = typeof api;
