@@ -294,6 +294,7 @@ const App = () => {
               onAiExplain={ai.explain}
               onAiTests={ai.tests}
               onAiSecurity={ai.security}
+              onAiMock={ai.mock}
             />
           </div>
         </div>

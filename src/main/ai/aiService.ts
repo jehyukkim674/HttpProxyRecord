@@ -68,6 +68,14 @@ export class AIService {
     );
   }
 
+  /** #25 목 데이터 생성: 이 엔드포인트의 현실적인 가짜 JSON 응답 본문 */
+  async generateMockData(record: TrafficRecord): Promise<string> {
+    return this.ask(
+      '너는 목 데이터 생성기야. 주어진 엔드포인트와 실제 응답을 참고해, 같은 스키마의 현실적인 가짜 JSON 응답 본문만 출력해. 설명·마크다운 없이 JSON만.',
+      summarizeRecordForAI(record),
+    );
+  }
+
   /** #26 보안/퍼징 제안: 이 요청에 대해 점검할 보안 테스트·퍼징 케이스 */
   async securitySuggestions(record: TrafficRecord): Promise<string> {
     return this.ask(

@@ -64,6 +64,11 @@ export const useAiActions = (
     [run],
   );
 
+  const mock = useCallback(
+    (record: TrafficRecord) => void run('AI 목 데이터', () => ipc.aiMockData(record.id)),
+    [run],
+  );
+
   const search = useCallback(
     (query: string) => {
       setSearchOpen(false);
@@ -97,5 +102,6 @@ export const useAiActions = (
     search,
     report,
     security,
+    mock,
   };
 };

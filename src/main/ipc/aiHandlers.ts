@@ -31,4 +31,9 @@ export const registerAiHandlers = (context: AppContext): void => {
     if (!record) throw new Error('기록을 찾을 수 없어요.');
     return context.aiService.securitySuggestions(record);
   });
+  handle(CH.aiMockData, (_event, recordId: number) => {
+    const record = context.recordStore.getTrafficById(recordId);
+    if (!record) throw new Error('기록을 찾을 수 없어요.');
+    return context.aiService.generateMockData(record);
+  });
 };

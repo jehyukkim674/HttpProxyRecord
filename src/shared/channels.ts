@@ -71,6 +71,7 @@ export const CH = {
   aiSearch: 'ai:search',
   aiSessionReport: 'ai:session-report',
   aiSecuritySuggest: 'ai:security-suggest',
+  aiMockData: 'ai:mock-data',
 
   // scriptHandlers — 스크립트 인터셉션
   scriptList: 'script:list',

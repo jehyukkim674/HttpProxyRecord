@@ -72,6 +72,7 @@ type TrafficDetailProps = {
   onAiExplain: (record: TrafficRecord) => void;
   onAiTests: (record: TrafficRecord) => void;
   onAiSecurity: (record: TrafficRecord) => void;
+  onAiMock: (record: TrafficRecord) => void;
 };
 
 const HeaderTable = ({ headers }: { headers: Record<string, string> }) => (
@@ -98,6 +99,7 @@ export const TrafficDetail = ({
   onAiExplain,
   onAiTests,
   onAiSecurity,
+  onAiMock,
 }: TrafficDetailProps) => {
   if (!record) {
     return (
@@ -162,6 +164,9 @@ export const TrafficDetail = ({
         </Button>
         <Button size="small" icon={<SafetyOutlined />} onClick={() => onAiSecurity(record)}>
           AI 보안
+        </Button>
+        <Button size="small" icon={<ExperimentOutlined />} onClick={() => onAiMock(record)}>
+          AI 목데이터
         </Button>
       </Space>
       <Descriptions size="small" column={2} style={{ marginBottom: 16 }}>

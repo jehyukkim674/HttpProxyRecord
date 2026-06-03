@@ -145,6 +145,7 @@ const api = {
   aiSessionReport: (sessionId: number): Promise<string> => ipcRenderer.invoke(CH.aiSessionReport, sessionId),
   aiSecuritySuggest: (recordId: number): Promise<string> =>
     ipcRenderer.invoke(CH.aiSecuritySuggest, recordId),
+  aiMockData: (recordId: number): Promise<string> => ipcRenderer.invoke(CH.aiMockData, recordId),
 
   // 스크립트 인터셉션
   listScripts: (): Promise<InterceptScript[]> => ipcRenderer.invoke(CH.scriptList),
