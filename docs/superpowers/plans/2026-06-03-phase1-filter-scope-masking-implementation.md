@@ -1,5 +1,9 @@
 # Phase 1 Implementation Plan: 필터+검색 / 캡처 범위 필터 / 민감정보 마스킹
 
+> **구현 완료 (2026-06-03):** 8개 Task 완료. 단위/통합 테스트 53개 통과, E2E 10/10 통과(제외 도메인 차단·필터·검색 실앱 검증).
+>
+> **플랜 대비 변경:** `filterTraffic`을 `src/renderer/src/services/`가 아닌 `src/shared/`에 둠 — 테스트(node tsconfig)가 import하려면 shared여야 tsconfig 프로젝트 경계를 안 넘음. 순수함수라 shared가 올바른 위치.
+
 > **For agentic workers:** TDD. 각 Task는 실패 테스트 → 구현 → 통과 → 커밋. 순수함수 우선.
 
 **Goal:** 트래픽 필터+검색(클라이언트), 제외 도메인 캡처 차단, 내보내기 시 민감 헤더 마스킹 추가.
