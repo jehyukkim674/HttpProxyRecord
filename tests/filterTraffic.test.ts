@@ -76,4 +76,18 @@ describe('filterTraffic', () => {
       filterTraffic(rows, { ...emptyFilter(), methods: ['GET'], statusClasses: [5] }).map((r) => r.id),
     ).toEqual([3]);
   });
+
+  it('searchBody=true면 본문에서도 검색한다 (#11)', () => {
+    const bodyRows = [
+      rec({ id: 10, url: 'https://x/a', path: '/a', responseBody: '{"token":"SECRET123"}' }),
+      rec({ id: 11, url: 'https://x/b', path: '/b', requestBody: 'name=secret123' }),
+      rec({ id: 12, url: 'https://x/c', path: '/c' }),
+    ];
+    // 본문 미포함: URL/경로에 없으므로 0건
+    expect(filterTraffic(bodyRows, { ...emptyFilter(), search: 'secret123' })).toHaveLength(0);
+    // 본문 포함: 응답/요청 본문 매칭 2건
+    expect(
+      filterTraffic(bodyRows, { ...emptyFilter(), search: 'secret123', searchBody: true }).map((r) => r.id),
+    ).toEqual([10, 11]);
+  });
 });

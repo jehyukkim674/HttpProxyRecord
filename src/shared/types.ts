@@ -54,6 +54,7 @@ export type TrafficFilter = {
   methods: string[]; // 빈 배열 = 전체
   statusClasses: number[]; // [2,3,4,5] 중 선택, 빈 배열 = 전체
   search: string; // URL/경로 부분일치
+  searchBody?: boolean; // true면 요청/응답 본문도 검색 (#11 전문검색)
 };
 
 export type ComposedRequest = {

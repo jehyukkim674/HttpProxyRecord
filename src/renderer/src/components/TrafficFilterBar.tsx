@@ -62,6 +62,12 @@ export const TrafficFilterBar = ({ filter, onChange, total, shown }: TrafficFilt
           onChange={(event) => onChange({ ...filter, search: event.target.value })}
           style={{ width: 220 }}
         />
+        <Tag.CheckableTag
+          checked={filter.searchBody === true}
+          onChange={(checked) => onChange({ ...filter, searchBody: checked })}
+        >
+          본문 포함
+        </Tag.CheckableTag>
         <Button size="small" onClick={() => onChange(emptyFilter())}>
           초기화
         </Button>

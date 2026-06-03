@@ -5,6 +5,7 @@ export const emptyFilter = (): TrafficFilter => ({
   methods: [],
   statusClasses: [],
   search: '',
+  searchBody: false,
 });
 
 /** 트래픽 목록을 필터 조건(AND 결합)으로 거른다. 순수함수. */
@@ -21,8 +22,13 @@ export const filterTraffic = (records: TrafficRecord[], filter: TrafficFilter): 
     ) {
       return false;
     }
-    if (search && !record.url.toLowerCase().includes(search) && !record.path.toLowerCase().includes(search)) {
-      return false;
+    if (search) {
+      const inUrl = record.url.toLowerCase().includes(search) || record.path.toLowerCase().includes(search);
+      const inBody =
+        filter.searchBody === true &&
+        ((record.requestBody?.toLowerCase().includes(search) ?? false) ||
+          (record.responseBody?.toLowerCase().includes(search) ?? false));
+      if (!inUrl && !inBody) return false;
     }
     return true;
   });
