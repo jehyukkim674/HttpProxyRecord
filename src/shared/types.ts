@@ -48,3 +48,10 @@ export type CertInfo = {
   certPath: string;
   installed: boolean | null;
 };
+
+export type TrafficFilter = {
+  domain: string; // 부분일치, '' = 전체
+  methods: string[]; // 빈 배열 = 전체
+  statusClasses: number[]; // [2,3,4,5] 중 선택, 빈 배열 = 전체
+  search: string; // URL/경로 부분일치
+};
