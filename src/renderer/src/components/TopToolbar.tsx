@@ -7,6 +7,7 @@ import {
   CameraOutlined,
   CodeOutlined,
   DiffOutlined,
+  FileTextOutlined,
   ImportOutlined,
   MobileOutlined,
   NodeIndexOutlined,
@@ -37,6 +38,7 @@ type TopToolbarProps = {
   onOpenPairing: () => void;
   onAiAnomalies: () => void;
   onAiSearch: () => void;
+  onAiReport: () => void;
   onOpenScripts: () => void;
   onOpenAnalysis: () => void;
   onOpenSequence: () => void;
@@ -61,6 +63,7 @@ export const TopToolbar = ({
   onOpenPairing,
   onAiAnomalies,
   onAiSearch,
+  onAiReport,
   onOpenScripts,
   onOpenAnalysis,
   onOpenSequence,
@@ -132,6 +135,9 @@ export const TopToolbar = ({
         </Button>
         <Button icon={<SearchOutlined />} onClick={onAiSearch}>
           AI 검색
+        </Button>
+        <Button icon={<FileTextOutlined />} onClick={onAiReport}>
+          AI 리포트
         </Button>
         <Button icon={<CodeOutlined />} onClick={onOpenScripts}>
           스크립트

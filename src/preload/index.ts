@@ -138,6 +138,9 @@ const api = {
     ipcRenderer.invoke(CH.aiDetectAnomalies, sessionId),
   aiSearch: (sessionId: number, query: string): Promise<number[]> =>
     ipcRenderer.invoke(CH.aiSearch, sessionId, query),
+  aiSessionReport: (sessionId: number): Promise<string> => ipcRenderer.invoke(CH.aiSessionReport, sessionId),
+  aiSecuritySuggest: (recordId: number): Promise<string> =>
+    ipcRenderer.invoke(CH.aiSecuritySuggest, recordId),
 
   // 스크립트 인터셉션
   listScripts: (): Promise<InterceptScript[]> => ipcRenderer.invoke(CH.scriptList),

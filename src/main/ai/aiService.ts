@@ -60,6 +60,22 @@ export class AIService {
     );
   }
 
+  /** #23 세션 요약 리포트: 무슨 일이 있었는지 서술형으로 정리 */
+  async sessionReport(records: TrafficRecord[]): Promise<string> {
+    return this.ask(
+      '너는 HTTP 트래픽 분석가야. 주어진 세션 트래픽을 보고 무슨 일이 일어났는지(주요 흐름, 호출된 엔드포인트, 에러, 눈에 띄는 점)를 한국어 서술형 리포트로 정리해. 마지막에 한 줄 요약을 덧붙여.',
+      summarizeRecordsForAI(records),
+    );
+  }
+
+  /** #26 보안/퍼징 제안: 이 요청에 대해 점검할 보안 테스트·퍼징 케이스 */
+  async securitySuggestions(record: TrafficRecord): Promise<string> {
+    return this.ask(
+      '너는 보안 엔지니어야. 주어진 요청을 바탕으로 점검하면 좋은 보안 테스트와 퍼징 케이스를 한국어로 제안해(인증/인가 우회, 인젝션, IDOR, 입력 변조, 레이트리밋 등). 실제로 시도해볼 구체적 변형을 예시로 들어.',
+      summarizeRecordForAI(record),
+    );
+  }
+
   /** #23 자연어 검색: 질의에 맞는 트래픽 id 배열 반환 */
   async naturalLanguageSearch(query: string, records: TrafficRecord[]): Promise<number[]> {
     const response = await this.client().messages.create({

@@ -67,6 +67,8 @@ export const CH = {
   aiGenerateTests: 'ai:generate-tests',
   aiDetectAnomalies: 'ai:detect-anomalies',
   aiSearch: 'ai:search',
+  aiSessionReport: 'ai:session-report',
+  aiSecuritySuggest: 'ai:security-suggest',
 
   // scriptHandlers — 스크립트 인터셉션
   scriptList: 'script:list',

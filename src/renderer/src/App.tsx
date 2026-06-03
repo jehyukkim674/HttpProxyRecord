@@ -161,6 +161,7 @@ const App = () => {
           onOpenPairing={() => setPairingOpen(true)}
           onAiAnomalies={ai.anomalies}
           onAiSearch={() => ai.setSearchOpen(true)}
+          onAiReport={ai.report}
           onOpenScripts={() => setScriptsOpen(true)}
           onOpenAnalysis={() => setAnalysisOpen(true)}
           onOpenSequence={() => setSequenceOpen(true)}
@@ -230,6 +231,7 @@ const App = () => {
               onAddFavorite={(record) => void handleAddFavorite(record)}
               onAiExplain={ai.explain}
               onAiTests={ai.tests}
+              onAiSecurity={ai.security}
             />
           </div>
         </div>

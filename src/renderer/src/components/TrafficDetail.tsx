@@ -6,6 +6,7 @@ import {
   CopyOutlined,
   DiffOutlined,
   ExperimentOutlined,
+  SafetyOutlined,
   SendOutlined,
   StarOutlined,
 } from '@ant-design/icons';
@@ -70,6 +71,7 @@ type TrafficDetailProps = {
   onAddFavorite: (record: TrafficRecord) => void;
   onAiExplain: (record: TrafficRecord) => void;
   onAiTests: (record: TrafficRecord) => void;
+  onAiSecurity: (record: TrafficRecord) => void;
 };
 
 const HeaderTable = ({ headers }: { headers: Record<string, string> }) => (
@@ -95,6 +97,7 @@ export const TrafficDetail = ({
   onAddFavorite,
   onAiExplain,
   onAiTests,
+  onAiSecurity,
 }: TrafficDetailProps) => {
   if (!record) {
     return (
@@ -156,6 +159,9 @@ export const TrafficDetail = ({
         </Button>
         <Button size="small" icon={<ExperimentOutlined />} onClick={() => onAiTests(record)}>
           AI 테스트
+        </Button>
+        <Button size="small" icon={<SafetyOutlined />} onClick={() => onAiSecurity(record)}>
+          AI 보안
         </Button>
       </Space>
       <Descriptions size="small" column={2} style={{ marginBottom: 16 }}>

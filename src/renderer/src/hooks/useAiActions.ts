@@ -51,6 +51,19 @@ export const useAiActions = (
     void run('AI 이상 탐지', () => ipc.aiDetectAnomalies(selectedSessionId));
   }, [selectedSessionId, run, messageApi]);
 
+  const report = useCallback(() => {
+    if (selectedSessionId === null) {
+      void messageApi.info('세션을 먼저 선택하세요');
+      return;
+    }
+    void run('AI 세션 리포트', () => ipc.aiSessionReport(selectedSessionId));
+  }, [selectedSessionId, run, messageApi]);
+
+  const security = useCallback(
+    (record: TrafficRecord) => void run('AI 보안 제안', () => ipc.aiSecuritySuggest(record.id)),
+    [run],
+  );
+
   const search = useCallback(
     (query: string) => {
       setSearchOpen(false);
@@ -73,5 +86,16 @@ export const useAiActions = (
 
   const closeModal = useCallback(() => setModal((previous) => ({ ...previous, open: false })), []);
 
-  return { modal, closeModal, searchOpen, setSearchOpen, explain, tests, anomalies, search };
+  return {
+    modal,
+    closeModal,
+    searchOpen,
+    setSearchOpen,
+    explain,
+    tests,
+    anomalies,
+    search,
+    report,
+    security,
+  };
 };
