@@ -6,6 +6,7 @@ import { SessionSidebar } from './components/SessionSidebar';
 import { TrafficTable } from './components/TrafficTable';
 import { TrafficDetail } from './components/TrafficDetail';
 import { TrafficFilterBar } from './components/TrafficFilterBar';
+import { SettingsDrawer } from './components/SettingsDrawer';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
@@ -22,6 +23,7 @@ const App = () => {
   const [selectedRecord, setSelectedRecord] = useState<TrafficRecord | null>(null);
   const [systemProxyEnabled, setSystemProxyEnabled] = useState(false);
   const [replayStatus, setReplayStatus] = useState<ReplayStatus | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { records } = useTraffic(selectedSessionId);
   const { filter, setFilter, filtered } = useTrafficFilter(records);
@@ -153,6 +155,7 @@ const App = () => {
           onStop={handleStop}
           onToggleSystemProxy={(enabled) => void handleToggleSystemProxy(enabled)}
           onInstallCert={() => void handleInstallCert()}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           <SessionSidebar
@@ -190,6 +193,7 @@ const App = () => {
           </div>
         </div>
       </div>
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </ConfigProvider>
   );
 };

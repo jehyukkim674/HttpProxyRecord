@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { Alert, Button, Input, Space, Switch, Tag } from 'antd';
-import { PlayCircleOutlined, SafetyCertificateOutlined, StopOutlined } from '@ant-design/icons';
+import {
+  PlayCircleOutlined,
+  SafetyCertificateOutlined,
+  SettingOutlined,
+  StopOutlined,
+} from '@ant-design/icons';
 import type { ProxyStatus } from '../../../shared/types';
 
 type TopToolbarProps = {
@@ -11,6 +16,7 @@ type TopToolbarProps = {
   onStop: () => void;
   onToggleSystemProxy: (enabled: boolean) => void;
   onInstallCert: () => void;
+  onOpenSettings: () => void;
 };
 
 export const TopToolbar = ({
@@ -21,6 +27,7 @@ export const TopToolbar = ({
   onStop,
   onToggleSystemProxy,
   onInstallCert,
+  onOpenSettings,
 }: TopToolbarProps) => {
   const [sessionName, setSessionName] = useState('');
 
@@ -63,6 +70,9 @@ export const TopToolbar = ({
         />
         <Button icon={<SafetyCertificateOutlined />} onClick={onInstallCert}>
           인증서 설치
+        </Button>
+        <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
+          설정
         </Button>
       </Space>
       {error && <Alert type="error" message={error} style={{ marginTop: 8 }} showIcon closable />}
