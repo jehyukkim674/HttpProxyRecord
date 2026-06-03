@@ -69,3 +69,42 @@ export type ComposedResponse = {
   body: string;
   durationMs: number;
 };
+
+export type LineDiff = { type: 'same' | 'added' | 'removed'; text: string };
+
+export type ResponseComparison = {
+  statusChanged: boolean;
+  statusA: number;
+  statusB: number;
+  bodyDiff: LineDiff[];
+};
+
+export type SessionComparisonRow = {
+  key: string;
+  status: 'same' | 'changed' | 'onlyA' | 'onlyB';
+  comparison: ResponseComparison | null;
+};
+
+export type WaterfallRow = {
+  id: number;
+  label: string;
+  statusCode: number;
+  leftMs: number;
+  widthMs: number;
+};
+
+export type Snapshot = {
+  id: number;
+  method: string;
+  path: string;
+  url: string;
+  statusCode: number;
+  body: string;
+  savedAt: string;
+};
+
+export type SnapshotVerifyResult = {
+  snapshotId: number;
+  passed: boolean;
+  comparison: ResponseComparison;
+};
