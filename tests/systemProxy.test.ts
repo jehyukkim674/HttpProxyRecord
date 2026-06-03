@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildProxyCommands } from '../src/main/system/systemProxy';
+import { buildProxyCommands, runProxyCommands } from '../src/main/system/systemProxy';
 
 describe('buildProxyCommands', () => {
   it('macOS 활성화 명령을 네트워크 서비스별로 만든다', () => {
@@ -98,5 +98,43 @@ describe('buildProxyCommands', () => {
     expect(() =>
       buildProxyCommands('linux', 'enable', { host: '127.0.0.1', port: 8888, networkServices: [] }),
     ).toThrow('지원하지 않는 플랫폼입니다: linux');
+  });
+});
+
+describe('runProxyCommands', () => {
+  it('프록시 설정을 거부하는 서비스(예: LG Monitor Controls)가 있어도 나머지에 계속 적용한다', async () => {
+    const attempted: string[] = [];
+    const exec = async (_command: string, args: string[]): Promise<void> => {
+      attempted.push(args.join(' '));
+      // LG Monitor Controls 같은 비-네트워크 서비스는 networksetup이 비정상 종료한다
+      if (args.includes('LG Monitor Controls')) {
+        throw new Error('** Error: The parameters were not valid.');
+      }
+    };
+    const commands = buildProxyCommands('darwin', 'enable', {
+      host: '127.0.0.1',
+      port: 8888,
+      networkServices: ['LG Monitor Controls', 'Wi-Fi'],
+    });
+
+    const result = await runProxyCommands(commands, exec);
+
+    expect(attempted).toHaveLength(4); // 실패해도 4개 명령 전부 시도
+    expect(result.applied).toBe(2); // Wi-Fi 2개 성공
+    expect(result.failures).toHaveLength(2); // LG 2개 실패 — 수집만 하고 중단하지 않음
+    expect(result.failures[0].error.message).toContain('parameters were not valid');
+  });
+
+  it('모든 명령이 성공하면 실패가 없다', async () => {
+    const commands = buildProxyCommands('darwin', 'enable', {
+      host: '127.0.0.1',
+      port: 8888,
+      networkServices: ['Wi-Fi'],
+    });
+
+    const result = await runProxyCommands(commands, async () => {});
+
+    expect(result.applied).toBe(2);
+    expect(result.failures).toEqual([]);
   });
 });
