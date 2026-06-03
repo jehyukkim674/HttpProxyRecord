@@ -9,6 +9,7 @@ import {
   DiffOutlined,
   ImportOutlined,
   MobileOutlined,
+  NodeIndexOutlined,
   PlayCircleOutlined,
   RobotOutlined,
   SafetyCertificateOutlined,
@@ -38,6 +39,7 @@ type TopToolbarProps = {
   onAiSearch: () => void;
   onOpenScripts: () => void;
   onOpenAnalysis: () => void;
+  onOpenSequence: () => void;
   darkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
 };
@@ -61,6 +63,7 @@ export const TopToolbar = ({
   onAiSearch,
   onOpenScripts,
   onOpenAnalysis,
+  onOpenSequence,
   darkMode,
   onToggleDarkMode,
 }: TopToolbarProps) => {
@@ -135,6 +138,9 @@ export const TopToolbar = ({
         </Button>
         <Button icon={<AuditOutlined />} onClick={onOpenAnalysis}>
           분석
+        </Button>
+        <Button icon={<NodeIndexOutlined />} onClick={onOpenSequence}>
+          시퀀스
         </Button>
         <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
           설정
