@@ -55,3 +55,17 @@ export type TrafficFilter = {
   statusClasses: number[]; // [2,3,4,5] 중 선택, 빈 배열 = 전체
   search: string; // URL/경로 부분일치
 };
+
+export type ComposedRequest = {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body: string | null;
+};
+
+export type ComposedResponse = {
+  statusCode: number;
+  headers: Record<string, string>;
+  body: string;
+  durationMs: number;
+};
