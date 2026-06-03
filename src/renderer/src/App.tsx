@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ConfigProvider, Segmented, message, theme } from 'antd';
 import koKR from 'antd/locale/ko_KR';
 import { TopToolbar } from './components/TopToolbar';
@@ -21,6 +21,7 @@ import { AiSearchModal } from './components/AiSearchModal';
 import { ScriptsDrawer } from './components/ScriptsDrawer';
 import { AnalysisModal } from './components/AnalysisModal';
 import { SequenceDiagramModal } from './components/SequenceDiagramModal';
+import { CommandPalette, type Command } from './components/CommandPalette';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
@@ -65,6 +66,43 @@ const App = () => {
   const [scriptsOpen, setScriptsOpen] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [sequenceOpen, setSequenceOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setPaletteOpen((value) => !value);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const commands = useMemo<Command[]>(
+    () => [
+      { id: 'settings', label: '설정 열기', keywords: 'settings', run: () => setSettingsOpen(true) },
+      { id: 'compare', label: '세션 비교', keywords: 'compare diff', run: () => setCompareOpen(true) },
+      { id: 'snapshots', label: '스냅샷', keywords: 'snapshot', run: () => setSnapshotsOpen(true) },
+      { id: 'stats', label: '통계', keywords: 'stats', run: () => setStatsOpen(true) },
+      { id: 'favorites', label: '즐겨찾기', keywords: 'favorite', run: () => setFavoritesOpen(true) },
+      { id: 'pairing', label: '모바일 페어링', keywords: 'mobile qr', run: () => setPairingOpen(true) },
+      { id: 'scripts', label: '스크립트 인터셉션', keywords: 'script', run: () => setScriptsOpen(true) },
+      { id: 'analysis', label: '세션 분석', keywords: 'analysis security', run: () => setAnalysisOpen(true) },
+      { id: 'sequence', label: '시퀀스 다이어그램', keywords: 'mermaid', run: () => setSequenceOpen(true) },
+      { id: 'import', label: 'HAR 가져오기', keywords: 'import har', run: () => void exporter.importHar() },
+      { id: 'ai-report', label: 'AI 세션 리포트', keywords: 'ai report', run: () => ai.report() },
+      { id: 'ai-anomalies', label: 'AI 이상 탐지', keywords: 'ai anomaly', run: () => ai.anomalies() },
+      { id: 'ai-search', label: 'AI 검색', keywords: 'ai search', run: () => ai.setSearchOpen(true) },
+      {
+        id: 'dark',
+        label: '다크모드 토글',
+        keywords: 'dark light theme',
+        run: () => setDarkMode((value) => !value),
+      },
+    ],
+    [exporter, ai],
+  );
 
   const handleRecordingChanged = useCallback(() => {
     void reload();
@@ -165,6 +203,7 @@ const App = () => {
           onOpenScripts={() => setScriptsOpen(true)}
           onOpenAnalysis={() => setAnalysisOpen(true)}
           onOpenSequence={() => setSequenceOpen(true)}
+          onOpenPalette={() => setPaletteOpen(true)}
           darkMode={darkMode}
           onToggleDarkMode={setDarkMode}
         />
@@ -279,6 +318,7 @@ const App = () => {
         }}
       />
       <SequenceDiagramModal open={sequenceOpen} records={records} onClose={() => setSequenceOpen(false)} />
+      <CommandPalette open={paletteOpen} commands={commands} onClose={() => setPaletteOpen(false)} />
       <FavoritesDrawer
         open={favoritesOpen}
         onClose={() => setFavoritesOpen(false)}

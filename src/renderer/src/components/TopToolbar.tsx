@@ -42,6 +42,7 @@ type TopToolbarProps = {
   onOpenScripts: () => void;
   onOpenAnalysis: () => void;
   onOpenSequence: () => void;
+  onOpenPalette: () => void;
   darkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
 };
@@ -67,6 +68,7 @@ export const TopToolbar = ({
   onOpenScripts,
   onOpenAnalysis,
   onOpenSequence,
+  onOpenPalette,
   darkMode,
   onToggleDarkMode,
 }: TopToolbarProps) => {
@@ -150,6 +152,9 @@ export const TopToolbar = ({
         </Button>
         <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
           설정
+        </Button>
+        <Button onClick={onOpenPalette} title="명령 팔레트 (Cmd/Ctrl+K)">
+          ⌘K
         </Button>
         <Button
           icon={<BulbOutlined />}
