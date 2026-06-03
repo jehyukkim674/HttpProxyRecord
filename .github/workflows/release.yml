@@ -1,0 +1,39 @@
+name: Release
+
+# v로 시작하는 태그를 push하면 macOS/Windows 산출물을 빌드해 GitHub Releases에 게시한다.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            build: npm run package:mac
+          - os: windows-latest
+            build: npm run package:win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build & publish (${{ matrix.os }})
+        run: ${{ matrix.build }} -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 코드 서명을 하지 않으므로 CI에서 서명 자동 탐색을 끈다.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
