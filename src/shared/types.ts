@@ -138,3 +138,11 @@ export type Favorite = {
   note: string;
   createdAt: string;
 };
+
+// 스크립트 인터셉션: 사용자가 작성한 JS로 요청/응답을 변조하는 규칙
+export type InterceptScript = {
+  id: string;
+  name: string;
+  code: string;
+  enabled: boolean;
+};

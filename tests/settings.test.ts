@@ -60,4 +60,12 @@ describe('SettingsStore', () => {
     expect(store.getAiApiKey()).toBe('sk-ant-123');
     expect(backend.getSetting('aiApiKey')).toBe('sk-ant-123');
   });
+
+  it('스크립트: 기본 빈 배열, set 후 라운드트립', () => {
+    const store = new SettingsStore(new MemoryBackend());
+    expect(store.getScripts()).toEqual([]);
+    const scripts = [{ id: 'a', name: '헤더주입', code: 'function onRequest(r){}', enabled: true }];
+    store.setScripts(scripts);
+    expect(store.getScripts()).toEqual(scripts);
+  });
 });

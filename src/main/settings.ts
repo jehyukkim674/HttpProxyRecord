@@ -1,5 +1,5 @@
 import { log } from './logger';
-import type { OverrideRule, ThrottleConfig } from '../shared/types';
+import type { InterceptScript, OverrideRule, ThrottleConfig } from '../shared/types';
 
 /**
  * 키-값 설정 백엔드. RecordStore가 구현하며, 테스트에서는 인메모리 맵으로 대체할 수 있다.
@@ -94,6 +94,14 @@ export class SettingsStore {
   }
   setExcludeDomains(domains: string[]): void {
     this.write('excludeDomains', domains);
+  }
+
+  // 스크립트 인터셉션
+  getScripts(): InterceptScript[] {
+    return this.read<InterceptScript[]>('interceptScripts', []);
+  }
+  setScripts(scripts: InterceptScript[]): void {
+    this.write('interceptScripts', scripts);
   }
 
   // AI API 키 — 민감값이라 JSON이 아닌 평문으로 저장한다 (AIService가 () => string | null을 기대)
