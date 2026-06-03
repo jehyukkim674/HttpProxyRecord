@@ -122,3 +122,19 @@ export type ThrottleConfig = {
   enabled: boolean;
   latencyMs: number;
 };
+
+export type StatsSummary = {
+  totalCount: number;
+  avgDurationMs: number;
+  errorRate: number; // 0~1 (4xx+5xx 비율)
+  byDomain: Array<{ host: string; count: number }>;
+  slowest: TrafficRecord[];
+};
+
+export type Favorite = {
+  id: number;
+  method: string;
+  url: string;
+  note: string;
+  createdAt: string;
+};

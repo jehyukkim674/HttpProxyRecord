@@ -1,6 +1,7 @@
 import type {
   ComposedRequest,
   ComposedResponse,
+  Favorite,
   OverrideRule,
   ProxyStatus,
   ReplayStatus,
@@ -10,6 +11,8 @@ import type {
   ThrottleConfig,
   TrafficRecord,
 } from '../../../shared/types';
+
+type ReplayOptions = { applyDelay: boolean; passthrough: boolean };
 
 /** preload가 노출한 window.api 래퍼 — 컴포넌트는 이 모듈만 사용한다 */
 export const ipc = {
@@ -79,4 +82,16 @@ export const ipc = {
     window.api.resolveBreakpoint(id, action),
   onBreakpoint: (callback: (hit: { id: number; method: string; url: string }) => void): (() => void) =>
     window.api.onBreakpoint(callback),
+
+  // 재생 옵션 (#16 #17)
+  getReplayOptions: (): Promise<ReplayOptions> => window.api.getReplayOptions(),
+  setReplayOptions: (options: ReplayOptions): Promise<ReplayOptions> => window.api.setReplayOptions(options),
+
+  // 즐겨찾기 (#19)
+  saveFavorite: (input: { method: string; url: string; note: string }): Promise<Favorite> =>
+    window.api.saveFavorite(input),
+  listFavorites: (): Promise<Favorite[]> => window.api.listFavorites(),
+  updateFavoriteNote: (id: number, note: string): Promise<Favorite[]> =>
+    window.api.updateFavoriteNote(id, note),
+  deleteFavorite: (id: number): Promise<Favorite[]> => window.api.deleteFavorite(id),
 };

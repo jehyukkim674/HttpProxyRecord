@@ -90,6 +90,25 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
     return context.getReplayStatus();
   });
 
+  ipcMain.handle('replay:get-options', () => context.getReplayOptions());
+  ipcMain.handle('replay:set-options', (_event, options: { applyDelay: boolean; passthrough: boolean }) =>
+    context.setReplayOptions(options),
+  );
+
+  // ── 즐겨찾기 (#19) ──
+  ipcMain.handle('favorite:save', (_event, input: { method: string; url: string; note: string }) =>
+    context.recordStore.saveFavorite(input),
+  );
+  ipcMain.handle('favorite:list', () => context.recordStore.listFavorites());
+  ipcMain.handle('favorite:update-note', (_event, id: number, note: string) => {
+    context.recordStore.updateFavoriteNote(id, note);
+    return context.recordStore.listFavorites();
+  });
+  ipcMain.handle('favorite:delete', (_event, id: number) => {
+    context.recordStore.deleteFavorite(id);
+    return context.recordStore.listFavorites();
+  });
+
   // ── 내보내기 ──
   ipcMain.handle('export:har', async (_event, sessionId: number) => {
     const records = context.recordStore.listTraffic(sessionId);

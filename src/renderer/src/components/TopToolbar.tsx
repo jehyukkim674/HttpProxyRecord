@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, Button, Input, Space, Switch, Tag } from 'antd';
 import {
+  BarChartOutlined,
   BulbOutlined,
   CameraOutlined,
   DiffOutlined,
@@ -8,6 +9,7 @@ import {
   PlayCircleOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
+  StarOutlined,
   StopOutlined,
 } from '@ant-design/icons';
 import type { ProxyStatus } from '../../../shared/types';
@@ -24,6 +26,8 @@ type TopToolbarProps = {
   onOpenCompare: () => void;
   onOpenSnapshots: () => void;
   onImportHar: () => void;
+  onOpenStats: () => void;
+  onOpenFavorites: () => void;
   darkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
 };
@@ -40,6 +44,8 @@ export const TopToolbar = ({
   onOpenCompare,
   onOpenSnapshots,
   onImportHar,
+  onOpenStats,
+  onOpenFavorites,
   darkMode,
   onToggleDarkMode,
 }: TopToolbarProps) => {
@@ -93,6 +99,12 @@ export const TopToolbar = ({
         </Button>
         <Button icon={<ImportOutlined />} onClick={onImportHar}>
           HAR 가져오기
+        </Button>
+        <Button icon={<BarChartOutlined />} onClick={onOpenStats}>
+          통계
+        </Button>
+        <Button icon={<StarOutlined />} onClick={onOpenFavorites}>
+          즐겨찾기
         </Button>
         <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
           설정

@@ -90,6 +90,22 @@ export class AppContext {
     this.proxyEngine.resolveBreakpoint(id, action);
   }
 
+  getReplayOptions(): { applyDelay: boolean; passthrough: boolean } {
+    return {
+      applyDelay: this.loadJson<boolean>('replayApplyDelay', false),
+      passthrough: this.loadJson<boolean>('replayPassthrough', false),
+    };
+  }
+
+  setReplayOptions(options: { applyDelay: boolean; passthrough: boolean }): {
+    applyDelay: boolean;
+    passthrough: boolean;
+  } {
+    this.recordStore.setSetting('replayApplyDelay', JSON.stringify(options.applyDelay));
+    this.recordStore.setSetting('replayPassthrough', JSON.stringify(options.passthrough));
+    return options;
+  }
+
   getOverrideRules(): OverrideRule[] {
     return this.loadJson<OverrideRule[]>('overrideRules', []);
   }
@@ -192,7 +208,11 @@ export class AppContext {
     if (records.length === 0) {
       throw new Error('이 세션에는 재생할 트래픽이 없어요.');
     }
-    await this.replayServer.start(records, port);
+    // 재생 옵션은 설정에서 읽는다 (#16 패스스루 / #17 지연)
+    await this.replayServer.start(records, port, {
+      applyDelay: this.loadJson<boolean>('replayApplyDelay', false),
+      passthrough: this.loadJson<boolean>('replayPassthrough', false),
+    });
     this.replaySessionId = sessionId;
     return this.getReplayStatus();
   }

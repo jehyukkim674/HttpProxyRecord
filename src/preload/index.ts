@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   ComposedRequest,
   ComposedResponse,
+  Favorite,
   OverrideRule,
   ProxyStatus,
   ReplayStatus,
@@ -11,6 +12,8 @@ import type {
   ThrottleConfig,
   TrafficRecord,
 } from '../shared/types';
+
+type ReplayOptions = { applyDelay: boolean; passthrough: boolean };
 
 const api = {
   // 프록시/녹화
@@ -99,6 +102,19 @@ const api = {
       ipcRenderer.removeListener('breakpoint:hit', listener);
     };
   },
+
+  // 재생 옵션 (#16 #17)
+  getReplayOptions: (): Promise<ReplayOptions> => ipcRenderer.invoke('replay:get-options'),
+  setReplayOptions: (options: ReplayOptions): Promise<ReplayOptions> =>
+    ipcRenderer.invoke('replay:set-options', options),
+
+  // 즐겨찾기 (#19)
+  saveFavorite: (input: { method: string; url: string; note: string }): Promise<Favorite> =>
+    ipcRenderer.invoke('favorite:save', input),
+  listFavorites: (): Promise<Favorite[]> => ipcRenderer.invoke('favorite:list'),
+  updateFavoriteNote: (id: number, note: string): Promise<Favorite[]> =>
+    ipcRenderer.invoke('favorite:update-note', id, note),
+  deleteFavorite: (id: number): Promise<Favorite[]> => ipcRenderer.invoke('favorite:delete', id),
 };
 
 export type RendererApi = typeof api;

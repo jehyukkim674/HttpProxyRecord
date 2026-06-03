@@ -1,5 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
-import type { CapturedTraffic, Session, Snapshot, TrafficRecord } from '../../shared/types';
+import type { CapturedTraffic, Favorite, Session, Snapshot, TrafficRecord } from '../../shared/types';
+
+type FavoriteRow = { id: number; method: string; url: string; note: string; created_at: string };
 
 type SnapshotRow = {
   id: number;
@@ -100,7 +102,43 @@ export class RecordStore {
         body TEXT NOT NULL,
         saved_at TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS favorites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        method TEXT NOT NULL,
+        url TEXT NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL
+      );
     `);
+  }
+
+  saveFavorite(input: { method: string; url: string; note: string }): Favorite {
+    const createdAt = new Date().toISOString();
+    const result = this.db
+      .prepare('INSERT INTO favorites (method, url, note, created_at) VALUES (?, ?, ?, ?)')
+      .run(input.method, input.url, input.note, createdAt);
+    return { ...input, id: Number(result.lastInsertRowid), createdAt };
+  }
+
+  listFavorites(): Favorite[] {
+    const rows = this.db
+      .prepare('SELECT * FROM favorites ORDER BY id DESC')
+      .all() as unknown as FavoriteRow[];
+    return rows.map((row) => ({
+      id: row.id,
+      method: row.method,
+      url: row.url,
+      note: row.note,
+      createdAt: row.created_at,
+    }));
+  }
+
+  updateFavoriteNote(id: number, note: string): void {
+    this.db.prepare('UPDATE favorites SET note = ? WHERE id = ?').run(note, id);
+  }
+
+  deleteFavorite(id: number): void {
+    this.db.prepare('DELETE FROM favorites WHERE id = ?').run(id);
   }
 
   private toSnapshot(row: SnapshotRow): Snapshot {

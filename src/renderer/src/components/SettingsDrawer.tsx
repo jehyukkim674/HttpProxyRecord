@@ -18,6 +18,8 @@ export const SettingsDrawer = ({ open, onClose }: SettingsDrawerProps) => {
   const [ruleStatus, setRuleStatus] = useState(200);
   const [ruleBody, setRuleBody] = useState('{"mocked":true}');
   const [breakpoints, setBreakpoints] = useState('');
+  const [replayApplyDelay, setReplayApplyDelay] = useState(false);
+  const [replayPassthrough, setReplayPassthrough] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -25,11 +27,21 @@ export const SettingsDrawer = ({ open, onClose }: SettingsDrawerProps) => {
     void ipc.getThrottle().then(setThrottle);
     void ipc.listOverrideRules().then(setRules);
     void ipc.getBreakpointPatterns().then((patterns) => setBreakpoints(patterns.join('\n')));
+    void ipc.getReplayOptions().then((options) => {
+      setReplayApplyDelay(options.applyDelay);
+      setReplayPassthrough(options.passthrough);
+    });
   }, [open]);
 
   const persistBreakpoints = (text: string) => {
     setBreakpoints(text);
     void ipc.setBreakpointPatterns(text.split('\n'));
+  };
+
+  const persistReplay = (next: { applyDelay: boolean; passthrough: boolean }) => {
+    setReplayApplyDelay(next.applyDelay);
+    setReplayPassthrough(next.passthrough);
+    void ipc.setReplayOptions(next);
   };
 
   const persistDomains = async (next: string[]) => {
@@ -203,6 +215,26 @@ export const SettingsDrawer = ({ open, onClose }: SettingsDrawerProps) => {
         onChange={(e) => persistBreakpoints(e.target.value)}
         rows={3}
       />
+
+      <Divider />
+
+      <Typography.Title level={5}>재생 옵션 (#16 #17)</Typography.Title>
+      <Space direction="vertical">
+        <Space>
+          <Switch
+            checked={replayApplyDelay}
+            onChange={(applyDelay) => persistReplay({ applyDelay, passthrough: replayPassthrough })}
+          />
+          <span>지연 반영 재생 (녹화된 응답시간만큼 지연)</span>
+        </Space>
+        <Space>
+          <Switch
+            checked={replayPassthrough}
+            onChange={(passthrough) => persistReplay({ applyDelay: replayApplyDelay, passthrough })}
+          />
+          <span>패스스루 (미매칭 요청은 원본 서버로)</span>
+        </Space>
+      </Space>
     </Drawer>
   );
 };

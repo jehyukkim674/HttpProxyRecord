@@ -1,5 +1,12 @@
 import { Button, Descriptions, Dropdown, Empty, Space, Table, Tabs, Tag, Typography } from 'antd';
-import { CameraOutlined, CodeOutlined, CopyOutlined, DiffOutlined, SendOutlined } from '@ant-design/icons';
+import {
+  CameraOutlined,
+  CodeOutlined,
+  CopyOutlined,
+  DiffOutlined,
+  SendOutlined,
+  StarOutlined,
+} from '@ant-design/icons';
 import type { TrafficRecord } from '../../../shared/types';
 import { decodeJwt, findBearerToken } from '../../../shared/jwt';
 import { parseCookieHeader } from '../../../shared/cookies';
@@ -57,6 +64,7 @@ type TrafficDetailProps = {
   onResend: (record: TrafficRecord) => void;
   onSaveSnapshot: (record: TrafficRecord) => void;
   onPickDiff: (record: TrafficRecord) => void;
+  onAddFavorite: (record: TrafficRecord) => void;
 };
 
 const HeaderTable = ({ headers }: { headers: Record<string, string> }) => (
@@ -79,6 +87,7 @@ export const TrafficDetail = ({
   onResend,
   onSaveSnapshot,
   onPickDiff,
+  onAddFavorite,
 }: TrafficDetailProps) => {
   if (!record) {
     return (
@@ -123,6 +132,9 @@ export const TrafficDetail = ({
         </Button>
         <Button size="small" icon={<DiffOutlined />} onClick={() => onPickDiff(record)}>
           비교 담기
+        </Button>
+        <Button size="small" icon={<StarOutlined />} onClick={() => onAddFavorite(record)}>
+          즐겨찾기
         </Button>
       </Space>
       <Descriptions size="small" column={2} style={{ marginBottom: 16 }}>

@@ -56,6 +56,15 @@ describe('ReplayServer', () => {
     expect(result.body).toBe('{"users":[]}');
   });
 
+  it('applyDelay 옵션이면 durationMs만큼 지연한다 (#17)', async () => {
+    replayServer = new ReplayServer();
+    const port = await replayServer.start([sampleRecord({ durationMs: 300 })], 0, { applyDelay: true });
+
+    const started = Date.now();
+    await fetchLocal(port, '/users');
+    expect(Date.now() - started).toBeGreaterThanOrEqual(250);
+  });
+
   it('같은 경로의 다른 메서드는 각각 매칭된다', async () => {
     replayServer = new ReplayServer();
     const port = await replayServer.start(

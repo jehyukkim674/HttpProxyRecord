@@ -13,6 +13,8 @@ import { SessionCompareModal } from './components/SessionCompareModal';
 import { SnapshotsDrawer } from './components/SnapshotsDrawer';
 import { RequestDiffModal } from './components/RequestDiffModal';
 import { BreakpointPrompt } from './components/BreakpointPrompt';
+import { StatsModal } from './components/StatsModal';
+import { FavoritesDrawer } from './components/FavoritesDrawer';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
@@ -41,6 +43,8 @@ const App = () => {
   const [diffA, setDiffA] = useState<TrafficRecord | null>(null);
   const [diffB, setDiffB] = useState<TrafficRecord | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
 
   const { records } = useTraffic(selectedSessionId);
   const { filter, setFilter, filtered } = useTrafficFilter(records);
@@ -215,6 +219,14 @@ const App = () => {
     }
   }, [messageApi, reload]);
 
+  const handleAddFavorite = useCallback(
+    async (record: TrafficRecord) => {
+      await ipc.saveFavorite({ method: record.method, url: record.url, note: '' });
+      void messageApi.success('즐겨찾기에 추가했어요');
+    },
+    [messageApi],
+  );
+
   return (
     <ConfigProvider
       locale={koKR}
@@ -234,6 +246,8 @@ const App = () => {
           onOpenCompare={() => setCompareOpen(true)}
           onOpenSnapshots={() => setSnapshotsOpen(true)}
           onImportHar={() => void handleImportHar()}
+          onOpenStats={() => setStatsOpen(true)}
+          onOpenFavorites={() => setFavoritesOpen(true)}
           darkMode={darkMode}
           onToggleDarkMode={setDarkMode}
         />
@@ -296,6 +310,7 @@ const App = () => {
               }}
               onSaveSnapshot={(record) => void handleSaveSnapshot(record)}
               onPickDiff={handlePickDiff}
+              onAddFavorite={(record) => void handleAddFavorite(record)}
             />
           </div>
         </div>
@@ -322,6 +337,16 @@ const App = () => {
         }}
       />
       <BreakpointPrompt />
+      <StatsModal open={statsOpen} records={records} onClose={() => setStatsOpen(false)} />
+      <FavoritesDrawer
+        open={favoritesOpen}
+        onClose={() => setFavoritesOpen(false)}
+        onResend={(record) => {
+          setComposerSeed(record);
+          setComposerOpen(true);
+          setFavoritesOpen(false);
+        }}
+      />
     </ConfigProvider>
   );
 };
