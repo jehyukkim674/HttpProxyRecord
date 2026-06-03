@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "headless": "electron-vite build && electron ./out/main/index.js --headless",
+    "icon": "node scripts/make-icon.mjs",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
@@ -15,13 +16,14 @@
     "lint": "eslint .",
     "format": "prettier --write --no-error-on-unmatched-pattern \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\"",
     "format:check": "prettier --check --no-error-on-unmatched-pattern \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\"",
-    "package:mac": "electron-vite build && electron-builder --mac",
-    "package:win": "electron-vite build && electron-builder --win"
+    "package:mac": "npm run icon && electron-vite build && electron-builder --mac",
+    "package:win": "npm run icon && electron-vite build && electron-builder --win"
   },
   "dependencies": {
     "@ant-design/icons": "^6.2.5",
     "@anthropic-ai/sdk": "^0.100.1",
     "antd": "^6.4.0",
+    "electron-updater": "^6.8.3",
     "node-forge": "^1.4.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.0",

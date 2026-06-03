@@ -14,11 +14,20 @@ mac:
         - arm64
         - x64
   category: public.app-category.developer-tools
+  icon: build/icon.png
 win:
   target:
     - target: nsis
       arch:
         - x64
+  icon: build/icon.png
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+# #10 자동 업데이트: 실제 배포 시 아래 publish를 실제 owner/repo로 채우고
+# GitHub Releases에 빌드 산출물을 업로드하면 electron-updater가 자동 확인한다.
+# (미설정 시 앱은 정상 동작하고 업데이트 확인만 조용히 무시됨)
+publish:
+  - provider: github
+    owner: your-github-owner
+    repo: HttpProxyRecord

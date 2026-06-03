@@ -3,6 +3,21 @@ import path from 'node:path';
 import { AppContext } from './appContext';
 import { registerIpcHandlers } from './ipcHandlers';
 
+/**
+ * #10 자동 업데이트: 패키징된 앱에서만 electron-updater로 업데이트를 확인한다.
+ * 실제 동작하려면 electron-builder.yml의 publish(예: GitHub Releases)와 서명/릴리스가 필요하다.
+ * 개발 모드·publish 미설정 시 조용히 무시한다.
+ */
+const checkForUpdates = async (): Promise<void> => {
+  if (!app.isPackaged) return;
+  try {
+    const { autoUpdater } = await import('electron-updater');
+    await autoUpdater.checkForUpdatesAndNotify();
+  } catch {
+    // 릴리스 피드 미설정 등 — 무시 (업데이트는 선택 기능)
+  }
+};
+
 let mainWindow: BrowserWindow | null = null;
 let appContext: AppContext | null = null;
 let quitting = false;
@@ -56,6 +71,7 @@ void app.whenReady().then(() => {
   appContext = new AppContext();
   registerIpcHandlers(appContext, () => mainWindow);
   createWindow();
+  void checkForUpdates();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
