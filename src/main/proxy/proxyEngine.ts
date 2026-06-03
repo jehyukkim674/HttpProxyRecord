@@ -8,6 +8,12 @@ import type { CertManager } from './certManager';
 import { decodeBody } from './decompress';
 import { matchOverrideRule } from '../../shared/interception';
 import { log } from '../logger';
+import type {
+  ScriptHooks,
+  ScriptRequest,
+  ScriptResponse,
+  ScriptShortCircuit,
+} from '../scripting/scriptRunner';
 
 type InterceptionConfig = {
   overrideRules: OverrideRule[];
@@ -52,6 +58,7 @@ export class ProxyEngine {
   private readonly breakpointListeners: BreakpointListener[] = [];
   private readonly pendingBreakpoints = new Map<number, (action: BreakpointAction) => void>();
   private breakpointSeq = 0;
+  private scriptRunner: ScriptHooks | null = null;
 
   constructor(private readonly certManager: CertManager) {}
 
@@ -66,6 +73,11 @@ export class ProxyEngine {
   /** 오버라이드 규칙/throttle/브레이크포인트 설정을 갱신한다 (#4 #7 #3). */
   setInterception(config: InterceptionConfig): void {
     this.interception = config;
+  }
+
+  /** 스크립트 인터셉션 훅을 주입한다 (프로그래머블 인터셉션). */
+  setScriptRunner(runner: ScriptHooks): void {
+    this.scriptRunner = runner;
   }
 
   /** 일시정지된 요청을 통과/차단으로 재개한다 (#3). */
@@ -370,11 +382,48 @@ export class ProxyEngine {
       return;
     }
 
-    const outboundHeaders: Record<string, string | string[] | undefined> = { ...clientReq.headers };
+    // 스크립트 인터셉션: onRequest (헤더/본문/path/method 변조 또는 단락)
+    const scriptReq: ScriptRequest = {
+      method: clientReq.method ?? 'GET',
+      url,
+      host: `${target.hostname}${this.isDefaultPort(target) ? '' : `:${target.port}`}`,
+      path: target.path,
+      headers: this.normalizeHeaders(clientReq.headers),
+      body: requestChunks.length > 0 ? Buffer.concat(requestChunks).toString('utf-8') : null,
+    };
+    if (this.scriptRunner?.hasRequestHooks()) {
+      let shortCircuit: ScriptShortCircuit | null = null;
+      try {
+        shortCircuit = this.scriptRunner.runRequest(scriptReq);
+      } catch (error) {
+        log.error('스크립트 runRequest 실패', error);
+      }
+      if (shortCircuit) {
+        await this.throttleDelay();
+        clientRes.writeHead(shortCircuit.status, shortCircuit.headers);
+        clientRes.end(shortCircuit.body);
+        this.emit(
+          this.buildTraffic(clientReq, shortCircuit.status, shortCircuit.headers, target, {
+            requestChunks,
+            responseChunks: [Buffer.from(shortCircuit.body)],
+            startedAt,
+          }),
+        );
+        return;
+      }
+    }
+
+    const outboundHeaders: Record<string, string | string[] | undefined> = { ...scriptReq.headers };
     for (const headerName of HOP_BY_HOP_HEADERS) {
       delete outboundHeaders[headerName];
     }
     outboundHeaders.host = `${target.hostname}${this.isDefaultPort(target) ? '' : `:${target.port}`}`;
+    const outboundBody = scriptReq.body !== null ? Buffer.from(scriptReq.body) : Buffer.concat(requestChunks);
+    if (this.scriptRunner?.hasRequestHooks()) {
+      // 본문이 바뀌었을 수 있으니 길이 보정 (chunked 충돌 방지)
+      delete outboundHeaders['transfer-encoding'];
+      outboundHeaders['content-length'] = String(outboundBody.length);
+    }
 
     const responseChunks: Buffer[] = [];
     const requestFn = target.isHttps ? https.request : http.request;
@@ -382,8 +431,8 @@ export class ProxyEngine {
       {
         hostname: target.hostname,
         port: Number(target.port),
-        path: target.path,
-        method: clientReq.method,
+        path: scriptReq.path,
+        method: scriptReq.method,
         headers: outboundHeaders,
         // 디버깅 프록시 특성상 업스트림 인증서 검증은 끈다 (사설 인증서 API 대응)
         rejectUnauthorized: false,
@@ -393,10 +442,52 @@ export class ProxyEngine {
         proxyRes.on('data', (chunk: Buffer) => responseChunks.push(chunk));
         proxyRes.on('end', () => {
           void this.throttleDelay().then(() => {
-            clientRes.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);
+            const upstreamStatus = proxyRes.statusCode ?? 502;
+
+            // 스크립트 인터셉션: onResponse (응답 훅이 있을 때만 디코드→변조→재전송)
+            if (this.scriptRunner?.hasResponseHooks()) {
+              const buf = Buffer.concat(responseChunks);
+              const normalized = this.normalizeHeaders(proxyRes.headers);
+              const decoded =
+                buf.length > 0
+                  ? decodeBody(buf, normalized['content-encoding'], normalized['content-type'])
+                  : null;
+              const originalText = decoded ? decoded.text : buf.toString('utf-8');
+              const headersNoEncoding = { ...normalized };
+              delete headersNoEncoding['content-encoding'];
+              const res: ScriptResponse = {
+                status: upstreamStatus,
+                headers: headersNoEncoding,
+                body: originalText,
+              };
+              try {
+                this.scriptRunner.runResponse(scriptReq, res);
+              } catch (error) {
+                log.error('스크립트 runResponse 실패', error);
+              }
+              // 본문/상태가 바뀐 경우에만 평문으로 재전송(미변경 시 원본 패스스루로 바이너리 보존)
+              if (res.status !== upstreamStatus || res.body !== originalText) {
+                const outBuf = Buffer.from(res.body);
+                const outHeaders = { ...res.headers };
+                delete outHeaders['transfer-encoding'];
+                outHeaders['content-length'] = String(outBuf.length);
+                clientRes.writeHead(res.status, outHeaders);
+                clientRes.end(outBuf);
+                this.emit(
+                  this.buildTraffic(clientReq, res.status, outHeaders, target, {
+                    requestChunks,
+                    responseChunks: [outBuf],
+                    startedAt,
+                  }),
+                );
+                return;
+              }
+            }
+
+            clientRes.writeHead(upstreamStatus, proxyRes.headers);
             clientRes.end(Buffer.concat(responseChunks));
             this.emit(
-              this.buildTraffic(clientReq, proxyRes.statusCode ?? 0, proxyRes.headers, target, {
+              this.buildTraffic(clientReq, upstreamStatus, proxyRes.headers, target, {
                 requestChunks,
                 responseChunks,
                 startedAt,
@@ -415,7 +506,7 @@ export class ProxyEngine {
       this.emit(this.buildTraffic(clientReq, 502, {}, target, { requestChunks, responseChunks, startedAt }));
     });
 
-    if (requestChunks.length > 0) proxyReq.write(Buffer.concat(requestChunks));
+    if (outboundBody.length > 0) proxyReq.write(outboundBody);
     proxyReq.end();
   }
 
