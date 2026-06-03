@@ -4,6 +4,9 @@ import type {
   ComposedRequest,
   ComposedResponse,
   Favorite,
+  Guide,
+  GuideStep,
+  GuideSummary,
   InterceptScript,
   OverrideRule,
   ProxyStatus,
@@ -158,6 +161,17 @@ const api = {
   deleteScript: (id: string): Promise<InterceptScript[]> => ipcRenderer.invoke(CH.scriptDelete, id),
   toggleScript: (id: string, enabled: boolean): Promise<InterceptScript[]> =>
     ipcRenderer.invoke(CH.scriptToggle, id, enabled),
+
+  // 캡처 가이드 빌더
+  listCaptureSources: (): Promise<Array<{ id: string; name: string; thumbnail: string }>> =>
+    ipcRenderer.invoke(CH.captureListSources),
+  listGuides: (): Promise<GuideSummary[]> => ipcRenderer.invoke(CH.guideList),
+  getGuide: (id: number): Promise<Guide | null> => ipcRenderer.invoke(CH.guideGet, id),
+  saveGuide: (input: { id?: number; title: string; steps: GuideStep[] }): Promise<Guide> =>
+    ipcRenderer.invoke(CH.guideSave, input),
+  deleteGuide: (id: number): Promise<GuideSummary[]> => ipcRenderer.invoke(CH.guideDelete, id),
+  exportGuideHtml: (title: string, html: string): Promise<{ saved: boolean; path?: string }> =>
+    ipcRenderer.invoke(CH.guideExportHtml, title, html),
   onScriptLog: (
     callback: (entry: { scriptId: string; level: string; message: string }) => void,
   ): (() => void) => {

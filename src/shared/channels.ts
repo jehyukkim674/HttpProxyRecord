@@ -78,6 +78,14 @@ export const CH = {
   scriptSave: 'script:save',
   scriptDelete: 'script:delete',
   scriptToggle: 'script:toggle',
+
+  // guideHandlers — 캡처 가이드 빌더
+  captureListSources: 'capture:list-sources',
+  guideList: 'guide:list',
+  guideGet: 'guide:get',
+  guideSave: 'guide:save',
+  guideDelete: 'guide:delete',
+  guideExportHtml: 'guide:export-html',
 } as const;
 
 /** Main→Renderer 단방향 푸시 이벤트 (`webContents.send` / `ipcRenderer.on`) */

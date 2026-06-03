@@ -11,6 +11,7 @@ import {
   ImportOutlined,
   MobileOutlined,
   NodeIndexOutlined,
+  PictureOutlined,
   PlayCircleOutlined,
   RobotOutlined,
   SafetyCertificateOutlined,
@@ -42,6 +43,7 @@ type TopToolbarProps = {
   onOpenScripts: () => void;
   onOpenAnalysis: () => void;
   onOpenSequence: () => void;
+  onOpenGuide: () => void;
   onOpenPalette: () => void;
   darkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
@@ -68,6 +70,7 @@ export const TopToolbar = ({
   onOpenScripts,
   onOpenAnalysis,
   onOpenSequence,
+  onOpenGuide,
   onOpenPalette,
   darkMode,
   onToggleDarkMode,
@@ -149,6 +152,9 @@ export const TopToolbar = ({
         </Button>
         <Button icon={<NodeIndexOutlined />} onClick={onOpenSequence}>
           시퀀스
+        </Button>
+        <Button icon={<PictureOutlined />} onClick={onOpenGuide}>
+          가이드
         </Button>
         <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
           설정

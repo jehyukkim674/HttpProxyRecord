@@ -23,6 +23,7 @@ import { AnalysisModal } from './components/AnalysisModal';
 import { SequenceDiagramModal } from './components/SequenceDiagramModal';
 import { CommandPalette, type Command } from './components/CommandPalette';
 import { OpenApiAuditModal } from './components/OpenApiAuditModal';
+import { GuideBuilderDrawer } from './components/GuideBuilderDrawer';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
@@ -69,6 +70,7 @@ const App = () => {
   const [sequenceOpen, setSequenceOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [openapiOpen, setOpenapiOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -97,6 +99,12 @@ const App = () => {
         label: 'OpenAPI 대조 검증',
         keywords: 'openapi swagger spec',
         run: () => setOpenapiOpen(true),
+      },
+      {
+        id: 'guide',
+        label: '캡처 가이드 만들기',
+        keywords: 'guide manual capture screenshot 매뉴얼 캡처',
+        run: () => setGuideOpen(true),
       },
       { id: 'import', label: 'HAR 가져오기', keywords: 'import har', run: () => void exporter.importHar() },
       {
@@ -226,6 +234,7 @@ const App = () => {
           onOpenScripts={() => setScriptsOpen(true)}
           onOpenAnalysis={() => setAnalysisOpen(true)}
           onOpenSequence={() => setSequenceOpen(true)}
+          onOpenGuide={() => setGuideOpen(true)}
           onOpenPalette={() => setPaletteOpen(true)}
           darkMode={darkMode}
           onToggleDarkMode={setDarkMode}
@@ -343,6 +352,7 @@ const App = () => {
       />
       <SequenceDiagramModal open={sequenceOpen} records={records} onClose={() => setSequenceOpen(false)} />
       <CommandPalette open={paletteOpen} commands={commands} onClose={() => setPaletteOpen(false)} />
+      <GuideBuilderDrawer open={guideOpen} onClose={() => setGuideOpen(false)} />
       <OpenApiAuditModal
         open={openapiOpen}
         records={records}
