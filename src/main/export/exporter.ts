@@ -3,6 +3,27 @@ import type { TrafficRecord } from '../../shared/types';
 const APP_NAME = 'HttpProxyRecord';
 const APP_VERSION = '0.1.0';
 
+const SENSITIVE_HEADERS = new Set([
+  'authorization',
+  'proxy-authorization',
+  'cookie',
+  'set-cookie',
+  'x-api-key',
+  'x-auth-token',
+  'x-csrf-token',
+]);
+
+const REDACTED = '***REDACTED***';
+
+/** 민감 헤더 값을 마스킹한다 (내보내기 전용). 대소문자 무시. */
+export const maskSensitiveHeaders = (headers: Record<string, string>): Record<string, string> => {
+  const masked: Record<string, string> = {};
+  for (const [name, value] of Object.entries(headers)) {
+    masked[name] = SENSITIVE_HEADERS.has(name.toLowerCase()) ? REDACTED : value;
+  }
+  return masked;
+};
+
 type HarHeader = { name: string; value: string };
 
 const toHarHeaders = (headers: Record<string, string>): HarHeader[] =>
@@ -20,7 +41,7 @@ export const toHar = (records: TrafficRecord[]): object => ({
         method: record.method,
         url: record.url,
         httpVersion: 'HTTP/1.1',
-        headers: toHarHeaders(record.requestHeaders),
+        headers: toHarHeaders(maskSensitiveHeaders(record.requestHeaders)),
         queryString: [],
         cookies: [],
         headersSize: -1,
@@ -38,7 +59,7 @@ export const toHar = (records: TrafficRecord[]): object => ({
         status: record.statusCode,
         statusText: '',
         httpVersion: 'HTTP/1.1',
-        headers: toHarHeaders(record.responseHeaders),
+        headers: toHarHeaders(maskSensitiveHeaders(record.responseHeaders)),
         cookies: [],
         content: {
           size: record.responseSize,
@@ -59,7 +80,7 @@ export const toHar = (records: TrafficRecord[]): object => ({
 export const toCurl = (record: TrafficRecord): string => {
   const lines = [`curl -X ${record.method} '${record.url}'`];
 
-  for (const [name, value] of Object.entries(record.requestHeaders)) {
+  for (const [name, value] of Object.entries(maskSensitiveHeaders(record.requestHeaders))) {
     if (name.toLowerCase() === 'host') continue;
     lines.push(`  -H '${name}: ${value.replace(/'/g, "'\\''")}'`);
   }
@@ -92,7 +113,7 @@ export const toMarkdown = (records: TrafficRecord[]): string => {
     lines.push('');
     lines.push('| 헤더 | 값 |');
     lines.push('|------|-----|');
-    for (const [name, value] of Object.entries(record.requestHeaders)) {
+    for (const [name, value] of Object.entries(maskSensitiveHeaders(record.requestHeaders))) {
       lines.push(`| ${name} | ${value.replace(/\|/g, '\\|')} |`);
     }
     lines.push('');
@@ -107,7 +128,7 @@ export const toMarkdown = (records: TrafficRecord[]): string => {
     lines.push('');
     lines.push('| 헤더 | 값 |');
     lines.push('|------|-----|');
-    for (const [name, value] of Object.entries(record.responseHeaders)) {
+    for (const [name, value] of Object.entries(maskSensitiveHeaders(record.responseHeaders))) {
       lines.push(`| ${name} | ${value.replace(/\|/g, '\\|')} |`);
     }
     lines.push('');

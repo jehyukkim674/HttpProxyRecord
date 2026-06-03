@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toCurl, toHar, toMarkdown } from '../src/main/export/exporter';
+import { maskSensitiveHeaders, toCurl, toHar, toMarkdown } from '../src/main/export/exporter';
 import type { TrafficRecord } from '../src/shared/types';
 
 const sampleRecord = (overrides: Partial<TrafficRecord> = {}): TrafficRecord => ({
@@ -46,6 +46,37 @@ describe('toCurl', () => {
     expect(curl).not.toContain("-H 'host:");
     expect(curl).toContain("-H 'accept: */*'");
   });
+
+  it('민감 헤더를 마스킹한다', () => {
+    const curl = toCurl(sampleRecord());
+
+    expect(curl).toContain("-H 'authorization: ***REDACTED***'");
+    expect(curl).not.toContain('Bearer token123');
+  });
+});
+
+describe('maskSensitiveHeaders', () => {
+  it('민감 헤더 값을 REDACTED로 치환한다 (대소문자 무시)', () => {
+    const masked = maskSensitiveHeaders({
+      Authorization: 'Bearer secret',
+      Cookie: 'session=abc',
+      'Content-Type': 'application/json',
+    });
+    expect(masked.Authorization).toBe('***REDACTED***');
+    expect(masked.Cookie).toBe('***REDACTED***');
+    expect(masked['Content-Type']).toBe('application/json');
+  });
+
+  it('set-cookie / x-api-key / x-auth-token / x-csrf-token / proxy-authorization 도 마스킹', () => {
+    const masked = maskSensitiveHeaders({
+      'set-cookie': 'a=1',
+      'x-api-key': 'k',
+      'x-auth-token': 't',
+      'x-csrf-token': 'c',
+      'proxy-authorization': 'p',
+    });
+    expect(Object.values(masked).every((value) => value === '***REDACTED***')).toBe(true);
+  });
 });
 
 describe('toHar', () => {
@@ -84,6 +115,16 @@ describe('toHar', () => {
       name: 'content-type',
       value: 'application/json',
     });
+  });
+
+  it('민감 헤더를 마스킹한다', () => {
+    const har = toHar([sampleRecord()]) as {
+      log: { entries: Array<{ request: { headers: Array<{ name: string; value: string }> } }> };
+    };
+    const authHeader = har.log.entries[0].request.headers.find(
+      (header) => header.name.toLowerCase() === 'authorization',
+    );
+    expect(authHeader?.value).toBe('***REDACTED***');
   });
 });
 
