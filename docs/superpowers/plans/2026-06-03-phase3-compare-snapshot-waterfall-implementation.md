@@ -1,5 +1,7 @@
 # Phase 3 Implementation Plan: 세션 비교 / 스냅샷 / 워터폴
 
+> **구현 완료 (2026-06-03):** 8개 Task 완료. 테스트 87개 통과. E2E: 워터폴 탭 전환·스냅샷 저장→재전송 검증(v1→v2 실패 감지+diff) 통과. 세션 비교는 buildSessionComparison 단위테스트 5개 + 실제 캡처 데이터(Phase3 A=v1 vs B=v2가 changed) 확인으로 검증(antd Select는 CDP 자동조작 한계로 UI 자동 선택만 미검증, 모달 오픈은 통과).
+
 > **For agentic workers:** TDD. 순수함수 우선. 각 Task는 실패 테스트 → 구현 → 통과 → 커밋.
 
 **Goal:** 두 세션 응답 비교(#25), 골든 응답 스냅샷 재전송 검증(#26), 요청 타임라인 워터폴(#27).
