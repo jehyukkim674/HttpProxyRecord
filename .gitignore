@@ -3,6 +3,7 @@ out/
 dist/
 build/
 *.log
+logs/
 .DS_Store
 *.local
 coverage/
