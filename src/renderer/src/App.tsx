@@ -22,6 +22,7 @@ import { ScriptsDrawer } from './components/ScriptsDrawer';
 import { AnalysisModal } from './components/AnalysisModal';
 import { SequenceDiagramModal } from './components/SequenceDiagramModal';
 import { CommandPalette, type Command } from './components/CommandPalette';
+import { OpenApiAuditModal } from './components/OpenApiAuditModal';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
@@ -67,6 +68,7 @@ const App = () => {
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [sequenceOpen, setSequenceOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [openapiOpen, setOpenapiOpen] = useState(false);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -90,6 +92,12 @@ const App = () => {
       { id: 'scripts', label: '스크립트 인터셉션', keywords: 'script', run: () => setScriptsOpen(true) },
       { id: 'analysis', label: '세션 분석', keywords: 'analysis security', run: () => setAnalysisOpen(true) },
       { id: 'sequence', label: '시퀀스 다이어그램', keywords: 'mermaid', run: () => setSequenceOpen(true) },
+      {
+        id: 'openapi',
+        label: 'OpenAPI 대조 검증',
+        keywords: 'openapi swagger spec',
+        run: () => setOpenapiOpen(true),
+      },
       { id: 'import', label: 'HAR 가져오기', keywords: 'import har', run: () => void exporter.importHar() },
       {
         id: 'export-bundle',
@@ -334,6 +342,15 @@ const App = () => {
       />
       <SequenceDiagramModal open={sequenceOpen} records={records} onClose={() => setSequenceOpen(false)} />
       <CommandPalette open={paletteOpen} commands={commands} onClose={() => setPaletteOpen(false)} />
+      <OpenApiAuditModal
+        open={openapiOpen}
+        records={records}
+        onClose={() => setOpenapiOpen(false)}
+        onJump={(recordId) => {
+          const found = records.find((record) => record.id === recordId);
+          if (found) setSelectedRecord(found);
+        }}
+      />
       <FavoritesDrawer
         open={favoritesOpen}
         onClose={() => setFavoritesOpen(false)}
