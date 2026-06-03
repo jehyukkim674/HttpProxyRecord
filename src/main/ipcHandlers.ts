@@ -5,7 +5,9 @@ import type { AppContext } from './appContext';
 import { toCurl, toHar, toMarkdown } from './export/exporter';
 import { toOpenApi, toPostmanCollection } from './export/postmanOpenApi';
 import { parseHar } from './export/harImport';
+import { toK6Script } from '../shared/loadtest';
 import { installRootCa } from './system/certInstaller';
+import { buildPairingQr } from './system/mobilePairing';
 import { sendComposedRequest } from './composer/requestSender';
 import { verifySnapshot } from './composer/snapshotVerifier';
 import type { ComposedRequest, OverrideRule, Session, ThrottleConfig, TrafficRecord } from '../shared/types';
@@ -177,6 +179,18 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
     return { saved: true, path: result.filePath };
   });
 
+  // k6 부하테스트 스크립트 내보내기 (#29)
+  ipcMain.handle('export:k6', async (_event, sessionId: number) => {
+    const records = context.recordStore.listTraffic(sessionId);
+    const result = await dialog.showSaveDialog({
+      defaultPath: `session-${sessionId}.k6.js`,
+      filters: [{ name: 'k6', extensions: ['js'] }],
+    });
+    if (result.canceled || !result.filePath) return { saved: false };
+    fs.writeFileSync(result.filePath, toK6Script(records));
+    return { saved: true, path: result.filePath };
+  });
+
   // HAR 가져오기 → 새 세션 생성
   ipcMain.handle('import:har', async (): Promise<{ imported: boolean; sessions?: Session[] }> => {
     const result = await dialog.showOpenDialog({
@@ -207,6 +221,18 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
   ipcMain.handle('breakpoint:resolve', (_event, id: number, action: 'forward' | 'block') => {
     context.resolveBreakpoint(id, action);
     return { resolved: true };
+  });
+
+  // ── 조건부 알림 (#30) ──
+  ipcMain.handle('alert:get', () => context.getAlertRule());
+  ipcMain.handle('alert:set', (_event, rule: { enabled: boolean; statusMin: number }) =>
+    context.setAlertRule(rule),
+  );
+
+  // ── 모바일 페어링 QR (#31) ──
+  ipcMain.handle('pairing:qr', () => {
+    const status = context.getProxyStatus();
+    return buildPairingQr(status.port ?? 8888);
   });
 
   // ── Composer (재전송/체이닝) ──

@@ -30,7 +30,29 @@ const createWindow = (): void => {
   });
 };
 
+// #28 헤드리스 CLI 모드: `electron . --headless [--port 8888]` — UI 없이 프록시만 기동
+const headless = process.argv.includes('--headless');
+const headlessPort = (() => {
+  const index = process.argv.indexOf('--port');
+  return index >= 0 ? Number(process.argv[index + 1]) : 8888;
+})();
+
+const runHeadless = async (): Promise<void> => {
+  appContext = new AppContext();
+  appContext.setBroadcaster((record) => {
+    process.stdout.write(`${record.method} ${record.statusCode} ${record.url}\n`);
+  });
+  const status = await appContext.startRecording(`CLI ${new Date().toISOString()}`, headlessPort);
+  process.stdout.write(`HttpProxyRecord 헤드리스 프록시 실행: 127.0.0.1:${status.port}\n`);
+  process.stdout.write('종료하려면 Ctrl+C\n');
+};
+
 void app.whenReady().then(() => {
+  if (headless) {
+    void runHeadless();
+    return;
+  }
+
   appContext = new AppContext();
   registerIpcHandlers(appContext, () => mainWindow);
   createWindow();

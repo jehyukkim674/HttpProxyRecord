@@ -1,4 +1,4 @@
-import { app } from 'electron';
+import { app, Notification } from 'electron';
 import path from 'node:path';
 import { CertManager } from './proxy/certManager';
 import { ProxyEngine } from './proxy/proxyEngine';
@@ -138,6 +138,31 @@ export class AppContext {
 
     const record = this.recordStore.insertTraffic(this.recordingSessionId, traffic);
     this.broadcaster?.(record);
+    this.maybeAlert(traffic);
+  }
+
+  // ─────────────────────────── 조건부 알림 (#30) ───────────────────────────
+
+  private maybeAlert(traffic: CapturedTraffic): void {
+    const alert = this.loadJson<{ enabled: boolean; statusMin: number }>('alertRule', {
+      enabled: false,
+      statusMin: 500,
+    });
+    if (!alert.enabled || traffic.statusCode < alert.statusMin) return;
+    if (!Notification.isSupported()) return;
+    new Notification({
+      title: `HTTP ${traffic.statusCode} — ${traffic.host}`,
+      body: `${traffic.method} ${traffic.path}`,
+    }).show();
+  }
+
+  getAlertRule(): { enabled: boolean; statusMin: number } {
+    return this.loadJson('alertRule', { enabled: false, statusMin: 500 });
+  }
+
+  setAlertRule(rule: { enabled: boolean; statusMin: number }): { enabled: boolean; statusMin: number } {
+    this.recordStore.setSetting('alertRule', JSON.stringify(rule));
+    return rule;
   }
 
   // ─────────────────────────── 설정: 캡처 제외 도메인 ───────────────────────────

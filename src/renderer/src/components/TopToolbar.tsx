@@ -6,6 +6,7 @@ import {
   CameraOutlined,
   DiffOutlined,
   ImportOutlined,
+  MobileOutlined,
   PlayCircleOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
@@ -28,6 +29,7 @@ type TopToolbarProps = {
   onImportHar: () => void;
   onOpenStats: () => void;
   onOpenFavorites: () => void;
+  onOpenPairing: () => void;
   darkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
 };
@@ -46,6 +48,7 @@ export const TopToolbar = ({
   onImportHar,
   onOpenStats,
   onOpenFavorites,
+  onOpenPairing,
   darkMode,
   onToggleDarkMode,
 }: TopToolbarProps) => {
@@ -90,6 +93,9 @@ export const TopToolbar = ({
         />
         <Button icon={<SafetyCertificateOutlined />} onClick={onInstallCert}>
           인증서 설치
+        </Button>
+        <Button icon={<MobileOutlined />} onClick={onOpenPairing}>
+          모바일
         </Button>
         <Button icon={<DiffOutlined />} onClick={onOpenCompare}>
           세션 비교

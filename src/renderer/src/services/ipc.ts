@@ -94,4 +94,14 @@ export const ipc = {
   updateFavoriteNote: (id: number, note: string): Promise<Favorite[]> =>
     window.api.updateFavoriteNote(id, note),
   deleteFavorite: (id: number): Promise<Favorite[]> => window.api.deleteFavorite(id),
+
+  // 내보내기 확장 (#29) / 알림 (#30) / 모바일 QR (#31)
+  exportK6: (sessionId: number): Promise<{ saved: boolean; path?: string }> => window.api.exportK6(sessionId),
+  getAlertRule: (): Promise<{ enabled: boolean; statusMin: number }> => window.api.getAlertRule(),
+  setAlertRule: (rule: {
+    enabled: boolean;
+    statusMin: number;
+  }): Promise<{ enabled: boolean; statusMin: number }> => window.api.setAlertRule(rule),
+  getPairingQr: (): Promise<{ ip: string | null; port: number; dataUrl: string | null; guide: string }> =>
+    window.api.getPairingQr(),
 };

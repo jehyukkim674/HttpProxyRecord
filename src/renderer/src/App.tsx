@@ -15,6 +15,7 @@ import { RequestDiffModal } from './components/RequestDiffModal';
 import { BreakpointPrompt } from './components/BreakpointPrompt';
 import { StatsModal } from './components/StatsModal';
 import { FavoritesDrawer } from './components/FavoritesDrawer';
+import { MobilePairingModal } from './components/MobilePairingModal';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
@@ -45,6 +46,7 @@ const App = () => {
   const [diffOpen, setDiffOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [pairingOpen, setPairingOpen] = useState(false);
 
   const { records } = useTraffic(selectedSessionId);
   const { filter, setFilter, filtered } = useTrafficFilter(records);
@@ -211,6 +213,14 @@ const App = () => {
     [messageApi],
   );
 
+  const handleExportK6 = useCallback(
+    async (sessionId: number) => {
+      const result = await ipc.exportK6(sessionId);
+      if (result.saved) void messageApi.success(`k6 스크립트 저장: ${result.path}`);
+    },
+    [messageApi],
+  );
+
   const handleImportHar = useCallback(async () => {
     const result = await ipc.importHar();
     if (result.imported) {
@@ -248,6 +258,7 @@ const App = () => {
           onImportHar={() => void handleImportHar()}
           onOpenStats={() => setStatsOpen(true)}
           onOpenFavorites={() => setFavoritesOpen(true)}
+          onOpenPairing={() => setPairingOpen(true)}
           darkMode={darkMode}
           onToggleDarkMode={setDarkMode}
         />
@@ -268,6 +279,7 @@ const App = () => {
             onExportMarkdown={(sessionId) => void handleExportMarkdown(sessionId)}
             onExportPostman={(sessionId) => void handleExportPostman(sessionId)}
             onExportOpenApi={(sessionId) => void handleExportOpenApi(sessionId)}
+            onExportK6={(sessionId) => void handleExportK6(sessionId)}
           />
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ padding: '8px 16px 0' }}>
@@ -338,6 +350,7 @@ const App = () => {
       />
       <BreakpointPrompt />
       <StatsModal open={statsOpen} records={records} onClose={() => setStatsOpen(false)} />
+      <MobilePairingModal open={pairingOpen} onClose={() => setPairingOpen(false)} />
       <FavoritesDrawer
         open={favoritesOpen}
         onClose={() => setFavoritesOpen(false)}

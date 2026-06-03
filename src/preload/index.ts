@@ -115,6 +115,17 @@ const api = {
   updateFavoriteNote: (id: number, note: string): Promise<Favorite[]> =>
     ipcRenderer.invoke('favorite:update-note', id, note),
   deleteFavorite: (id: number): Promise<Favorite[]> => ipcRenderer.invoke('favorite:delete', id),
+
+  // 내보내기 확장 (#29) / 알림 (#30) / 모바일 QR (#31)
+  exportK6: (sessionId: number): Promise<{ saved: boolean; path?: string }> =>
+    ipcRenderer.invoke('export:k6', sessionId),
+  getAlertRule: (): Promise<{ enabled: boolean; statusMin: number }> => ipcRenderer.invoke('alert:get'),
+  setAlertRule: (rule: {
+    enabled: boolean;
+    statusMin: number;
+  }): Promise<{ enabled: boolean; statusMin: number }> => ipcRenderer.invoke('alert:set', rule),
+  getPairingQr: (): Promise<{ ip: string | null; port: number; dataUrl: string | null; guide: string }> =>
+    ipcRenderer.invoke('pairing:qr'),
 };
 
 export type RendererApi = typeof api;

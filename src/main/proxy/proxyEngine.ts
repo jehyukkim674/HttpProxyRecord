@@ -145,6 +145,7 @@ export class ProxyEngine {
     return new Promise((resolve, reject) => {
       const server = http.createServer((req, res) => this.handlePlainRequest(req, res));
       server.on('connect', (req, socket, head) => this.handleConnect(req, socket as net.Socket, head));
+      server.on('upgrade', (req, socket, head) => this.handleUpgrade(req, socket as net.Socket, head));
       server.on('connection', (socket) => this.trackSocket(socket));
       server.on('error', reject);
       server.listen(port, () => {
@@ -170,6 +171,52 @@ export class ProxyEngine {
       port: url.port || '80',
       path: `${url.pathname}${url.search}`,
       isHttps: false,
+    });
+  }
+
+  /** WebSocket 업그레이드(ws://): 원본으로 raw 터널링하고 연결을 기록한다 (#20). */
+  private handleUpgrade(req: http.IncomingMessage, clientSocket: net.Socket, head: Buffer): void {
+    let url: URL;
+    try {
+      url = new URL(req.url ?? '');
+    } catch {
+      clientSocket.destroy();
+      return;
+    }
+
+    const startedAt = Date.now();
+    const upstream = net.connect(Number(url.port || '80'), url.hostname, () => {
+      const headerLines = Object.entries(req.headers).map(
+        ([name, value]) => `${name}: ${Array.isArray(value) ? value.join(', ') : value}`,
+      );
+      upstream.write(
+        `${req.method} ${url.pathname}${url.search} HTTP/1.1\r\n${headerLines.join('\r\n')}\r\n\r\n`,
+      );
+      if (head.length > 0) upstream.write(head);
+      clientSocket.pipe(upstream);
+      upstream.pipe(clientSocket);
+    });
+
+    this.trackSocket(upstream);
+    upstream.on('error', () => clientSocket.destroy());
+    clientSocket.on('error', () => upstream.destroy());
+    // WebSocket 연결 수립을 트래픽으로 기록 (프레임 단위 캡처는 향후)
+    this.emit({
+      timestamp: new Date(startedAt).toISOString(),
+      method: 'WS',
+      url: `ws://${url.host}${url.pathname}${url.search}`,
+      host: url.host,
+      path: `${url.pathname}${url.search}`,
+      requestHeaders: this.normalizeHeaders(req.headers),
+      requestBody: null,
+      statusCode: 101,
+      responseHeaders: {},
+      responseBody: null,
+      durationMs: 0,
+      requestSize: 0,
+      responseSize: 0,
+      isHttps: false,
+      clientIp: clientSocket.remoteAddress ?? '',
     });
   }
 

@@ -15,6 +15,7 @@ type SessionSidebarProps = {
   onExportMarkdown: (sessionId: number) => void;
   onExportPostman: (sessionId: number) => void;
   onExportOpenApi: (sessionId: number) => void;
+  onExportK6: (sessionId: number) => void;
 };
 
 export const SessionSidebar = ({
@@ -30,6 +31,7 @@ export const SessionSidebar = ({
   onExportMarkdown,
   onExportPostman,
   onExportOpenApi,
+  onExportK6,
 }: SessionSidebarProps) => {
   return (
     <div style={{ width: 300, borderRight: '1px solid #f0f0f0', overflow: 'auto', flexShrink: 0 }}>
@@ -56,6 +58,7 @@ export const SessionSidebar = ({
                     { key: 'markdown', label: 'Markdown으로 내보내기' },
                     { key: 'postman', label: 'Postman 컬렉션' },
                     { key: 'openapi', label: 'OpenAPI 스펙 (swagger-man)' },
+                    { key: 'k6', label: 'k6 부하테스트' },
                   ],
                   onClick: ({ key, domEvent }) => {
                     domEvent.stopPropagation();
@@ -63,6 +66,7 @@ export const SessionSidebar = ({
                     if (key === 'markdown') onExportMarkdown(session.id);
                     if (key === 'postman') onExportPostman(session.id);
                     if (key === 'openapi') onExportOpenApi(session.id);
+                    if (key === 'k6') onExportK6(session.id);
                   },
                 }}
               >

@@ -20,6 +20,8 @@ export const SettingsDrawer = ({ open, onClose }: SettingsDrawerProps) => {
   const [breakpoints, setBreakpoints] = useState('');
   const [replayApplyDelay, setReplayApplyDelay] = useState(false);
   const [replayPassthrough, setReplayPassthrough] = useState(false);
+  const [alertEnabled, setAlertEnabled] = useState(false);
+  const [alertStatusMin, setAlertStatusMin] = useState(500);
 
   useEffect(() => {
     if (!open) return;
@@ -31,11 +33,21 @@ export const SettingsDrawer = ({ open, onClose }: SettingsDrawerProps) => {
       setReplayApplyDelay(options.applyDelay);
       setReplayPassthrough(options.passthrough);
     });
+    void ipc.getAlertRule().then((rule) => {
+      setAlertEnabled(rule.enabled);
+      setAlertStatusMin(rule.statusMin);
+    });
   }, [open]);
 
   const persistBreakpoints = (text: string) => {
     setBreakpoints(text);
     void ipc.setBreakpointPatterns(text.split('\n'));
+  };
+
+  const persistAlert = (next: { enabled: boolean; statusMin: number }) => {
+    setAlertEnabled(next.enabled);
+    setAlertStatusMin(next.statusMin);
+    void ipc.setAlertRule(next);
   };
 
   const persistReplay = (next: { applyDelay: boolean; passthrough: boolean }) => {
@@ -234,6 +246,25 @@ export const SettingsDrawer = ({ open, onClose }: SettingsDrawerProps) => {
           />
           <span>패스스루 (미매칭 요청은 원본 서버로)</span>
         </Space>
+      </Space>
+
+      <Divider />
+
+      <Typography.Title level={5}>조건부 알림 (#30)</Typography.Title>
+      <Space>
+        <Switch
+          checked={alertEnabled}
+          onChange={(enabled) => persistAlert({ enabled, statusMin: alertStatusMin })}
+        />
+        <span>상태코드 ≥</span>
+        <InputNumber
+          min={100}
+          max={599}
+          value={alertStatusMin}
+          onChange={(value) => persistAlert({ enabled: alertEnabled, statusMin: value ?? 500 })}
+          style={{ width: 100 }}
+        />
+        <span>이면 데스크톱 알림</span>
       </Space>
     </Drawer>
   );

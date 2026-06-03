@@ -10,6 +10,7 @@ import {
 import type { TrafficRecord } from '../../../shared/types';
 import { decodeJwt, findBearerToken } from '../../../shared/jwt';
 import { parseCookieHeader } from '../../../shared/cookies';
+import { parseGraphQL } from '../../../shared/graphql';
 import { toFetch, toGoSnippet, toPythonRequests } from '../../../shared/snippets';
 import { BodyViewer } from './BodyViewer';
 
@@ -97,10 +98,18 @@ export const TrafficDetail = ({
     );
   }
 
+  const graphql = parseGraphQL(record.requestBody);
+
   return (
     <div style={{ padding: 16, overflow: 'auto', height: '100%' }}>
       <Typography.Title level={5} style={{ wordBreak: 'break-all', marginTop: 0 }}>
         {record.method} {record.url}
+        {graphql && (
+          <Tag color="magenta" style={{ marginLeft: 8 }}>
+            GraphQL {graphql.operationType}
+            {graphql.operationName ? ` · ${graphql.operationName}` : ''}
+          </Tag>
+        )}
       </Typography.Title>
       <Space style={{ marginBottom: 12 }} wrap>
         <Button size="small" icon={<CopyOutlined />} onClick={() => onCopyCurl(record.id)}>
