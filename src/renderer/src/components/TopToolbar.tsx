@@ -8,7 +8,9 @@ import {
   ImportOutlined,
   MobileOutlined,
   PlayCircleOutlined,
+  RobotOutlined,
   SafetyCertificateOutlined,
+  SearchOutlined,
   SettingOutlined,
   StarOutlined,
   StopOutlined,
@@ -30,6 +32,8 @@ type TopToolbarProps = {
   onOpenStats: () => void;
   onOpenFavorites: () => void;
   onOpenPairing: () => void;
+  onAiAnomalies: () => void;
+  onAiSearch: () => void;
   darkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
 };
@@ -49,6 +53,8 @@ export const TopToolbar = ({
   onOpenStats,
   onOpenFavorites,
   onOpenPairing,
+  onAiAnomalies,
+  onAiSearch,
   darkMode,
   onToggleDarkMode,
 }: TopToolbarProps) => {
@@ -111,6 +117,12 @@ export const TopToolbar = ({
         </Button>
         <Button icon={<StarOutlined />} onClick={onOpenFavorites}>
           즐겨찾기
+        </Button>
+        <Button icon={<RobotOutlined />} onClick={onAiAnomalies}>
+          AI 이상탐지
+        </Button>
+        <Button icon={<SearchOutlined />} onClick={onAiSearch}>
+          AI 검색
         </Button>
         <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
           설정

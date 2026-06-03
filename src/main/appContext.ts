@@ -3,6 +3,7 @@ import path from 'node:path';
 import { CertManager } from './proxy/certManager';
 import { ProxyEngine } from './proxy/proxyEngine';
 import type { BreakpointHit } from './proxy/proxyEngine';
+import { AIService } from './ai/aiService';
 import { matchExcludeDomain } from './proxy/excludeFilter';
 import { RecordStore } from './store/recordStore';
 import { ReplayServer } from './replay/replayServer';
@@ -30,6 +31,7 @@ export class AppContext {
   readonly proxyEngine: ProxyEngine;
   readonly replayServer = new ReplayServer();
   readonly systemProxyManager = new SystemProxyManager();
+  readonly aiService = new AIService(() => this.recordStore.getSetting('aiApiKey'));
 
   private proxyPort: number | null = null;
   private recordingSessionId: number | null = null;
@@ -163,6 +165,17 @@ export class AppContext {
   setAlertRule(rule: { enabled: boolean; statusMin: number }): { enabled: boolean; statusMin: number } {
     this.recordStore.setSetting('alertRule', JSON.stringify(rule));
     return rule;
+  }
+
+  // ─────────────────────────── AI (#21~#24) ───────────────────────────
+
+  getAiKeyStatus(): { hasKey: boolean } {
+    return { hasKey: this.aiService.hasKey() };
+  }
+
+  setAiApiKey(apiKey: string): { hasKey: boolean } {
+    this.recordStore.setSetting('aiApiKey', apiKey.trim());
+    return { hasKey: this.aiService.hasKey() };
   }
 
   // ─────────────────────────── 설정: 캡처 제외 도메인 ───────────────────────────

@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.2.5",
+    "@anthropic-ai/sdk": "^0.100.1",
     "antd": "^6.4.0",
     "node-forge": "^1.4.0",
     "qrcode": "^1.5.4",

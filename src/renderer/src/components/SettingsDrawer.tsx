@@ -22,6 +22,8 @@ export const SettingsDrawer = ({ open, onClose }: SettingsDrawerProps) => {
   const [replayPassthrough, setReplayPassthrough] = useState(false);
   const [alertEnabled, setAlertEnabled] = useState(false);
   const [alertStatusMin, setAlertStatusMin] = useState(500);
+  const [aiKeyDraft, setAiKeyDraft] = useState('');
+  const [aiHasKey, setAiHasKey] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -37,7 +39,16 @@ export const SettingsDrawer = ({ open, onClose }: SettingsDrawerProps) => {
       setAlertEnabled(rule.enabled);
       setAlertStatusMin(rule.statusMin);
     });
+    void ipc.getAiKeyStatus().then((status) => setAiHasKey(status.hasKey));
   }, [open]);
+
+  const saveAiKey = () => {
+    if (!aiKeyDraft.trim()) return;
+    void ipc.setAiApiKey(aiKeyDraft.trim()).then((status) => {
+      setAiHasKey(status.hasKey);
+      setAiKeyDraft('');
+    });
+  };
 
   const persistBreakpoints = (text: string) => {
     setBreakpoints(text);
@@ -266,6 +277,25 @@ export const SettingsDrawer = ({ open, onClose }: SettingsDrawerProps) => {
         />
         <span>이면 데스크톱 알림</span>
       </Space>
+
+      <Divider />
+
+      <Typography.Title level={5}>AI (Claude API) (#21~#24)</Typography.Title>
+      <Typography.Paragraph type="secondary">
+        Anthropic API 키를 입력하면 AI 설명/이상탐지/검색/테스트 생성이 활성화됩니다. 키는 로컬에만 저장되며,
+        전송 시 민감 헤더는 자동 마스킹됩니다. {aiHasKey ? '✅ 키 설정됨' : '⚠️ 키 없음'}
+      </Typography.Paragraph>
+      <Space.Compact style={{ width: '100%' }}>
+        <Input.Password
+          placeholder="sk-ant-..."
+          value={aiKeyDraft}
+          onChange={(e) => setAiKeyDraft(e.target.value)}
+          onPressEnter={saveAiKey}
+        />
+        <Button type="primary" onClick={saveAiKey}>
+          저장
+        </Button>
+      </Space.Compact>
     </Drawer>
   );
 };

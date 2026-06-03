@@ -1,9 +1,11 @@
 import { Button, Descriptions, Dropdown, Empty, Space, Table, Tabs, Tag, Typography } from 'antd';
 import {
+  BulbOutlined,
   CameraOutlined,
   CodeOutlined,
   CopyOutlined,
   DiffOutlined,
+  ExperimentOutlined,
   SendOutlined,
   StarOutlined,
 } from '@ant-design/icons';
@@ -66,6 +68,8 @@ type TrafficDetailProps = {
   onSaveSnapshot: (record: TrafficRecord) => void;
   onPickDiff: (record: TrafficRecord) => void;
   onAddFavorite: (record: TrafficRecord) => void;
+  onAiExplain: (record: TrafficRecord) => void;
+  onAiTests: (record: TrafficRecord) => void;
 };
 
 const HeaderTable = ({ headers }: { headers: Record<string, string> }) => (
@@ -89,6 +93,8 @@ export const TrafficDetail = ({
   onSaveSnapshot,
   onPickDiff,
   onAddFavorite,
+  onAiExplain,
+  onAiTests,
 }: TrafficDetailProps) => {
   if (!record) {
     return (
@@ -144,6 +150,12 @@ export const TrafficDetail = ({
         </Button>
         <Button size="small" icon={<StarOutlined />} onClick={() => onAddFavorite(record)}>
           즐겨찾기
+        </Button>
+        <Button size="small" icon={<BulbOutlined />} onClick={() => onAiExplain(record)}>
+          AI 설명
+        </Button>
+        <Button size="small" icon={<ExperimentOutlined />} onClick={() => onAiTests(record)}>
+          AI 테스트
         </Button>
       </Space>
       <Descriptions size="small" column={2} style={{ marginBottom: 16 }}>

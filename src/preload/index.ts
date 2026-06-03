@@ -126,6 +126,16 @@ const api = {
   }): Promise<{ enabled: boolean; statusMin: number }> => ipcRenderer.invoke('alert:set', rule),
   getPairingQr: (): Promise<{ ip: string | null; port: number; dataUrl: string | null; guide: string }> =>
     ipcRenderer.invoke('pairing:qr'),
+
+  // AI (#21~#24)
+  getAiKeyStatus: (): Promise<{ hasKey: boolean }> => ipcRenderer.invoke('ai:key-status'),
+  setAiApiKey: (apiKey: string): Promise<{ hasKey: boolean }> => ipcRenderer.invoke('ai:set-key', apiKey),
+  aiExplain: (recordId: number): Promise<string> => ipcRenderer.invoke('ai:explain', recordId),
+  aiGenerateTests: (recordId: number): Promise<string> => ipcRenderer.invoke('ai:generate-tests', recordId),
+  aiDetectAnomalies: (sessionId: number): Promise<string> =>
+    ipcRenderer.invoke('ai:detect-anomalies', sessionId),
+  aiSearch: (sessionId: number, query: string): Promise<number[]> =>
+    ipcRenderer.invoke('ai:search', sessionId, query),
 };
 
 export type RendererApi = typeof api;

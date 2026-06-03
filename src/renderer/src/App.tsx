@@ -16,6 +16,8 @@ import { BreakpointPrompt } from './components/BreakpointPrompt';
 import { StatsModal } from './components/StatsModal';
 import { FavoritesDrawer } from './components/FavoritesDrawer';
 import { MobilePairingModal } from './components/MobilePairingModal';
+import { AiResultModal } from './components/AiResultModal';
+import { AiSearchModal } from './components/AiSearchModal';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
@@ -47,6 +49,13 @@ const App = () => {
   const [statsOpen, setStatsOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [pairingOpen, setPairingOpen] = useState(false);
+  const [aiModal, setAiModal] = useState<{ open: boolean; title: string; loading: boolean; text: string }>({
+    open: false,
+    title: '',
+    loading: false,
+    text: '',
+  });
+  const [aiSearchOpen, setAiSearchOpen] = useState(false);
 
   const { records } = useTraffic(selectedSessionId);
   const { filter, setFilter, filtered } = useTrafficFilter(records);
@@ -237,6 +246,60 @@ const App = () => {
     [messageApi],
   );
 
+  // ── AI (#21~#24) ──
+  const runAi = useCallback(async (title: string, task: () => Promise<string>) => {
+    setAiModal({ open: true, title, loading: true, text: '' });
+    try {
+      const text = await task();
+      setAiModal({ open: true, title, loading: false, text });
+    } catch (caught) {
+      setAiModal({
+        open: true,
+        title,
+        loading: false,
+        text: caught instanceof Error ? caught.message : 'AI 호출 실패',
+      });
+    }
+  }, []);
+
+  const handleAiExplain = useCallback(
+    (record: TrafficRecord) => void runAi('AI 응답 설명', () => ipc.aiExplain(record.id)),
+    [runAi],
+  );
+
+  const handleAiTests = useCallback(
+    (record: TrafficRecord) => void runAi('AI 테스트 케이스', () => ipc.aiGenerateTests(record.id)),
+    [runAi],
+  );
+
+  const handleAiAnomalies = useCallback(() => {
+    if (selectedSessionId === null) {
+      void messageApi.info('세션을 먼저 선택하세요');
+      return;
+    }
+    void runAi('AI 이상 탐지', () => ipc.aiDetectAnomalies(selectedSessionId));
+  }, [selectedSessionId, runAi, messageApi]);
+
+  const handleAiSearch = useCallback(
+    (query: string) => {
+      setAiSearchOpen(false);
+      if (selectedSessionId === null) {
+        void messageApi.info('세션을 먼저 선택하세요');
+        return;
+      }
+      void runAi(`AI 검색: ${query}`, async () => {
+        const ids = await ipc.aiSearch(selectedSessionId, query);
+        if (ids.length === 0) return '매칭되는 트래픽이 없어요.';
+        const idSet = new Set(ids);
+        const matched = records.filter((record) => idSet.has(record.id));
+        return matched
+          .map((record) => `#${record.id} ${record.method} ${record.path} → ${record.statusCode}`)
+          .join('\n');
+      });
+    },
+    [selectedSessionId, records, runAi, messageApi],
+  );
+
   return (
     <ConfigProvider
       locale={koKR}
@@ -259,6 +322,8 @@ const App = () => {
           onOpenStats={() => setStatsOpen(true)}
           onOpenFavorites={() => setFavoritesOpen(true)}
           onOpenPairing={() => setPairingOpen(true)}
+          onAiAnomalies={handleAiAnomalies}
+          onAiSearch={() => setAiSearchOpen(true)}
           darkMode={darkMode}
           onToggleDarkMode={setDarkMode}
         />
@@ -323,6 +388,8 @@ const App = () => {
               onSaveSnapshot={(record) => void handleSaveSnapshot(record)}
               onPickDiff={handlePickDiff}
               onAddFavorite={(record) => void handleAddFavorite(record)}
+              onAiExplain={handleAiExplain}
+              onAiTests={handleAiTests}
             />
           </div>
         </div>
@@ -351,6 +418,14 @@ const App = () => {
       <BreakpointPrompt />
       <StatsModal open={statsOpen} records={records} onClose={() => setStatsOpen(false)} />
       <MobilePairingModal open={pairingOpen} onClose={() => setPairingOpen(false)} />
+      <AiResultModal
+        open={aiModal.open}
+        title={aiModal.title}
+        loading={aiModal.loading}
+        text={aiModal.text}
+        onClose={() => setAiModal((previous) => ({ ...previous, open: false }))}
+      />
+      <AiSearchModal open={aiSearchOpen} onSearch={handleAiSearch} onClose={() => setAiSearchOpen(false)} />
       <FavoritesDrawer
         open={favoritesOpen}
         onClose={() => setFavoritesOpen(false)}

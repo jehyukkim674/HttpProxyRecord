@@ -235,6 +235,26 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
     return buildPairingQr(status.port ?? 8888);
   });
 
+  // ── AI (#21~#24) ──
+  ipcMain.handle('ai:key-status', () => context.getAiKeyStatus());
+  ipcMain.handle('ai:set-key', (_event, apiKey: string) => context.setAiApiKey(apiKey));
+  ipcMain.handle('ai:explain', (_event, recordId: number) => {
+    const record = context.recordStore.getTrafficById(recordId);
+    if (!record) throw new Error('기록을 찾을 수 없어요.');
+    return context.aiService.explainResponse(record);
+  });
+  ipcMain.handle('ai:generate-tests', (_event, recordId: number) => {
+    const record = context.recordStore.getTrafficById(recordId);
+    if (!record) throw new Error('기록을 찾을 수 없어요.');
+    return context.aiService.generateTests(record);
+  });
+  ipcMain.handle('ai:detect-anomalies', (_event, sessionId: number) =>
+    context.aiService.detectAnomalies(context.recordStore.listTraffic(sessionId)),
+  );
+  ipcMain.handle('ai:search', (_event, sessionId: number, query: string) =>
+    context.aiService.naturalLanguageSearch(query, context.recordStore.listTraffic(sessionId)),
+  );
+
   // ── Composer (재전송/체이닝) ──
   ipcMain.handle('composer:send', (_event, request: ComposedRequest) => sendComposedRequest(request));
 

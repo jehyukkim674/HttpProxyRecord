@@ -104,4 +104,12 @@ export const ipc = {
   }): Promise<{ enabled: boolean; statusMin: number }> => window.api.setAlertRule(rule),
   getPairingQr: (): Promise<{ ip: string | null; port: number; dataUrl: string | null; guide: string }> =>
     window.api.getPairingQr(),
+
+  // AI (#21~#24)
+  getAiKeyStatus: (): Promise<{ hasKey: boolean }> => window.api.getAiKeyStatus(),
+  setAiApiKey: (apiKey: string): Promise<{ hasKey: boolean }> => window.api.setAiApiKey(apiKey),
+  aiExplain: (recordId: number): Promise<string> => window.api.aiExplain(recordId),
+  aiGenerateTests: (recordId: number): Promise<string> => window.api.aiGenerateTests(recordId),
+  aiDetectAnomalies: (sessionId: number): Promise<string> => window.api.aiDetectAnomalies(sessionId),
+  aiSearch: (sessionId: number, query: string): Promise<number[]> => window.api.aiSearch(sessionId, query),
 };
