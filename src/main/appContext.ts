@@ -8,6 +8,8 @@ import { matchExcludeDomain } from './proxy/excludeFilter';
 import { RecordStore } from './store/recordStore';
 import { ReplayServer } from './replay/replayServer';
 import { SystemProxyManager } from './system/systemProxy';
+import { SettingsStore } from './settings';
+import type { AlertRule, ReplayOptions } from './settings';
 import { log } from './logger';
 import type {
   CapturedTraffic,
@@ -18,21 +20,21 @@ import type {
   TrafficRecord,
 } from '../shared/types';
 
-const DEFAULT_THROTTLE: ThrottleConfig = { enabled: false, latencyMs: 0 };
-
 export type TrafficBroadcaster = (record: TrafficRecord) => void;
 
 /**
  * Main 프로세스의 전역 컨텍스트.
  * 프록시/저장소/인증서/재생/시스템 프록시를 초기화하고 녹화 상태를 관리한다.
+ * 설정 읽기/쓰기는 SettingsStore에 위임한다 (키·기본값·직렬화는 거기 한 곳에 모임).
  */
 export class AppContext {
   readonly certManager: CertManager;
   readonly recordStore: RecordStore;
   readonly proxyEngine: ProxyEngine;
+  readonly settings: SettingsStore;
   readonly replayServer = new ReplayServer();
   readonly systemProxyManager = new SystemProxyManager();
-  readonly aiService = new AIService(() => this.recordStore.getSetting('aiApiKey'));
+  readonly aiService = new AIService(() => this.settings.getAiApiKey());
 
   private proxyPort: number | null = null;
   private recordingSessionId: number | null = null;
@@ -45,12 +47,13 @@ export class AppContext {
     const userDataDir = app.getPath('userData');
     this.certManager = new CertManager(path.join(userDataDir, 'certs'));
     this.recordStore = new RecordStore(path.join(userDataDir, 'records.db'));
+    this.settings = new SettingsStore(this.recordStore);
     this.proxyEngine = new ProxyEngine(this.certManager);
 
     this.certManager.loadOrCreateRootCa();
     this.proxyEngine.onTraffic((traffic) => this.handleTraffic(traffic));
     this.proxyEngine.onBreakpoint((hit) => this.breakpointBroadcaster?.(hit));
-    this.excludeDomains = this.loadExcludeDomains();
+    this.excludeDomains = this.settings.getExcludeDomains();
     this.applyInterception();
   }
 
@@ -60,32 +63,21 @@ export class AppContext {
 
   // ─────────────────────────── 인터셉션 (#4 오버라이드 / #7 throttle) ───────────────────────────
 
-  private loadJson<T>(key: string, fallback: T): T {
-    const raw = this.recordStore.getSetting(key);
-    if (!raw) return fallback;
-    try {
-      return JSON.parse(raw) as T;
-    } catch (error) {
-      log.warn(`설정 '${key}' 파싱 실패 — 기본값 사용`, error);
-      return fallback;
-    }
-  }
-
   private applyInterception(): void {
     this.proxyEngine.setInterception({
-      overrideRules: this.loadJson<OverrideRule[]>('overrideRules', []),
-      throttle: this.loadJson<ThrottleConfig>('throttle', DEFAULT_THROTTLE),
-      breakpointPatterns: this.loadJson<string[]>('breakpointPatterns', []),
+      overrideRules: this.settings.getOverrideRules(),
+      throttle: this.settings.getThrottle(),
+      breakpointPatterns: this.settings.getBreakpointPatterns(),
     });
   }
 
   getBreakpointPatterns(): string[] {
-    return this.loadJson<string[]>('breakpointPatterns', []);
+    return this.settings.getBreakpointPatterns();
   }
 
   setBreakpointPatterns(patterns: string[]): string[] {
     const cleaned = patterns.map((p) => p.trim()).filter((p) => p.length > 0);
-    this.recordStore.setSetting('breakpointPatterns', JSON.stringify(cleaned));
+    this.settings.setBreakpointPatterns(cleaned);
     this.applyInterception();
     return cleaned;
   }
@@ -94,38 +86,31 @@ export class AppContext {
     this.proxyEngine.resolveBreakpoint(id, action);
   }
 
-  getReplayOptions(): { applyDelay: boolean; passthrough: boolean } {
-    return {
-      applyDelay: this.loadJson<boolean>('replayApplyDelay', false),
-      passthrough: this.loadJson<boolean>('replayPassthrough', false),
-    };
+  getReplayOptions(): ReplayOptions {
+    return this.settings.getReplayOptions();
   }
 
-  setReplayOptions(options: { applyDelay: boolean; passthrough: boolean }): {
-    applyDelay: boolean;
-    passthrough: boolean;
-  } {
-    this.recordStore.setSetting('replayApplyDelay', JSON.stringify(options.applyDelay));
-    this.recordStore.setSetting('replayPassthrough', JSON.stringify(options.passthrough));
+  setReplayOptions(options: ReplayOptions): ReplayOptions {
+    this.settings.setReplayOptions(options);
     return options;
   }
 
   getOverrideRules(): OverrideRule[] {
-    return this.loadJson<OverrideRule[]>('overrideRules', []);
+    return this.settings.getOverrideRules();
   }
 
   setOverrideRules(rules: OverrideRule[]): OverrideRule[] {
-    this.recordStore.setSetting('overrideRules', JSON.stringify(rules));
+    this.settings.setOverrideRules(rules);
     this.applyInterception();
     return rules;
   }
 
   getThrottle(): ThrottleConfig {
-    return this.loadJson<ThrottleConfig>('throttle', DEFAULT_THROTTLE);
+    return this.settings.getThrottle();
   }
 
   setThrottle(config: ThrottleConfig): ThrottleConfig {
-    this.recordStore.setSetting('throttle', JSON.stringify(config));
+    this.settings.setThrottle(config);
     this.applyInterception();
     return config;
   }
@@ -153,10 +138,7 @@ export class AppContext {
   // ─────────────────────────── 조건부 알림 (#30) ───────────────────────────
 
   private maybeAlert(traffic: CapturedTraffic): void {
-    const alert = this.loadJson<{ enabled: boolean; statusMin: number }>('alertRule', {
-      enabled: false,
-      statusMin: 500,
-    });
+    const alert = this.settings.getAlertRule();
     if (!alert.enabled || traffic.statusCode < alert.statusMin) return;
     if (!Notification.isSupported()) return;
     new Notification({
@@ -165,12 +147,12 @@ export class AppContext {
     }).show();
   }
 
-  getAlertRule(): { enabled: boolean; statusMin: number } {
-    return this.loadJson('alertRule', { enabled: false, statusMin: 500 });
+  getAlertRule(): AlertRule {
+    return this.settings.getAlertRule();
   }
 
-  setAlertRule(rule: { enabled: boolean; statusMin: number }): { enabled: boolean; statusMin: number } {
-    this.recordStore.setSetting('alertRule', JSON.stringify(rule));
+  setAlertRule(rule: AlertRule): AlertRule {
+    this.settings.setAlertRule(rule);
     return rule;
   }
 
@@ -181,21 +163,11 @@ export class AppContext {
   }
 
   setAiApiKey(apiKey: string): { hasKey: boolean } {
-    this.recordStore.setSetting('aiApiKey', apiKey.trim());
+    this.settings.setAiApiKey(apiKey.trim());
     return { hasKey: this.aiService.hasKey() };
   }
 
   // ─────────────────────────── 설정: 캡처 제외 도메인 ───────────────────────────
-
-  private loadExcludeDomains(): string[] {
-    const raw = this.recordStore.getSetting('excludeDomains');
-    if (!raw) return [];
-    try {
-      return JSON.parse(raw) as string[];
-    } catch {
-      return [];
-    }
-  }
 
   getExcludeDomains(): string[] {
     return this.excludeDomains;
@@ -203,7 +175,7 @@ export class AppContext {
 
   setExcludeDomains(domains: string[]): string[] {
     this.excludeDomains = domains.map((domain) => domain.trim()).filter((domain) => domain.length > 0);
-    this.recordStore.setSetting('excludeDomains', JSON.stringify(this.excludeDomains));
+    this.settings.setExcludeDomains(this.excludeDomains);
     return this.excludeDomains;
   }
 
@@ -254,10 +226,7 @@ export class AppContext {
       throw new Error('이 세션에는 재생할 트래픽이 없어요.');
     }
     // 재생 옵션은 설정에서 읽는다 (#16 패스스루 / #17 지연)
-    await this.replayServer.start(records, port, {
-      applyDelay: this.loadJson<boolean>('replayApplyDelay', false),
-      passthrough: this.loadJson<boolean>('replayPassthrough', false),
-    });
+    await this.replayServer.start(records, port, this.settings.getReplayOptions());
     this.replaySessionId = sessionId;
     return this.getReplayStatus();
   }

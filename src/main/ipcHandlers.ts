@@ -1,5 +1,6 @@
 import type { BrowserWindow } from 'electron';
 import type { AppContext } from './appContext';
+import { EV } from '../shared/channels';
 import { registerRecordingHandlers } from './ipc/recordingHandlers';
 import { registerReplayInterceptionHandlers } from './ipc/replayInterceptionHandlers';
 import { registerExportHandlers } from './ipc/exportHandlers';
@@ -13,10 +14,10 @@ import { registerAiHandlers } from './ipc/aiHandlers';
  */
 export const registerIpcHandlers = (context: AppContext, getWindow: () => BrowserWindow | null): void => {
   context.setBroadcaster((record) => {
-    getWindow()?.webContents.send('traffic:new', record);
+    getWindow()?.webContents.send(EV.traffic, record);
   });
   context.setBreakpointBroadcaster((hit) => {
-    getWindow()?.webContents.send('breakpoint:hit', hit);
+    getWindow()?.webContents.send(EV.breakpointHit, hit);
   });
 
   registerRecordingHandlers(context);

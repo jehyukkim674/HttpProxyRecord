@@ -23,20 +23,30 @@ import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
 import { useTrafficFilter } from './hooks/useTrafficFilter';
 import { useComposerVariables } from './hooks/useComposerVariables';
+import { useSystemProxy } from './hooks/useSystemProxy';
+import { useReplay } from './hooks/useReplay';
+import { useExportActions } from './hooks/useExportActions';
+import { useAiActions } from './hooks/useAiActions';
 import { ipc } from './services/ipc';
-import type { ReplayStatus, TrafficRecord } from '../../shared/types';
-
-const DEFAULT_REPLAY_PORT = 8889;
+import type { TrafficRecord } from '../../shared/types';
 
 const App = () => {
   const [messageApi, messageContextHolder] = message.useMessage();
   const { sessions, reload, remove } = useSessions();
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<TrafficRecord | null>(null);
-  const [systemProxyEnabled, setSystemProxyEnabled] = useState(false);
-  const [replayStatus, setReplayStatus] = useState<ReplayStatus | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { records } = useTraffic(selectedSessionId);
+  const { filter, setFilter, filtered } = useTrafficFilter(records);
+
+  // 기능별 액션 훅 (IPC 호출 + 자체 상태)
+  const proxy = useSystemProxy(messageApi);
+  const replay = useReplay(messageApi);
+  const exporter = useExportActions(messageApi, reload);
+  const ai = useAiActions(messageApi, selectedSessionId, records);
   const composerVars = useComposerVariables();
+
+  // UI 토글/모달 상태
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerSeed, setComposerSeed] = useState<TrafficRecord | null>(null);
   const [trafficView, setTrafficView] = useState<'table' | 'waterfall'>('table');
@@ -49,16 +59,6 @@ const App = () => {
   const [statsOpen, setStatsOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [pairingOpen, setPairingOpen] = useState(false);
-  const [aiModal, setAiModal] = useState<{ open: boolean; title: string; loading: boolean; text: string }>({
-    open: false,
-    title: '',
-    loading: false,
-    text: '',
-  });
-  const [aiSearchOpen, setAiSearchOpen] = useState(false);
-
-  const { records } = useTraffic(selectedSessionId);
-  const { filter, setFilter, filtered } = useTrafficFilter(records);
 
   const handleRecordingChanged = useCallback(() => {
     void reload();
@@ -83,9 +83,9 @@ const App = () => {
 
   const handleStop = useCallback(() => {
     void stopRecording().then(() => {
-      setSystemProxyEnabled(false);
+      proxy.setEnabled(false);
     });
-  }, [stopRecording]);
+  }, [stopRecording, proxy]);
 
   const handleDelete = useCallback(
     (sessionId: number) => {
@@ -98,82 +98,7 @@ const App = () => {
     [remove, selectedSessionId],
   );
 
-  // ── 시스템 프록시 / 인증서 ──
-
-  const handleToggleSystemProxy = useCallback(
-    async (enabled: boolean) => {
-      try {
-        if (enabled) {
-          await ipc.enableSystemProxy();
-          setSystemProxyEnabled(true);
-          void messageApi.success('시스템 프록시를 등록했어요');
-        } else {
-          await ipc.disableSystemProxy();
-          setSystemProxyEnabled(false);
-          void messageApi.info('시스템 프록시를 해제했어요');
-        }
-      } catch (caught) {
-        void messageApi.error(caught instanceof Error ? caught.message : '시스템 프록시 설정 실패');
-      }
-    },
-    [messageApi],
-  );
-
-  const handleInstallCert = useCallback(async () => {
-    const result = await ipc.installCert();
-    if (result.ok) {
-      void messageApi.success(result.message);
-    } else {
-      void messageApi.warning(result.message);
-    }
-  }, [messageApi]);
-
-  // ── 재생 ──
-
-  const handleStartReplay = useCallback(
-    async (sessionId: number) => {
-      try {
-        const nextReplayStatus = await ipc.startReplay(sessionId, DEFAULT_REPLAY_PORT);
-        setReplayStatus(nextReplayStatus);
-        void messageApi.success(`Mock 서버 재생 시작 — 127.0.0.1:${nextReplayStatus.port}`);
-      } catch (caught) {
-        void messageApi.error(caught instanceof Error ? caught.message : '재생 시작 실패');
-      }
-    },
-    [messageApi],
-  );
-
-  const handleStopReplay = useCallback(async () => {
-    const finalStatus = await ipc.stopReplay();
-    setReplayStatus(null);
-    void messageApi.info(`재생 중지 (히트 ${finalStatus.hitCount} / 미스 ${finalStatus.missCount})`);
-  }, [messageApi]);
-
-  // ── 내보내기 ──
-
-  const handleExportHar = useCallback(
-    async (sessionId: number) => {
-      const result = await ipc.exportHar(sessionId);
-      if (result.saved) void messageApi.success(`HAR 저장 완료: ${result.path}`);
-    },
-    [messageApi],
-  );
-
-  const handleExportMarkdown = useCallback(
-    async (sessionId: number) => {
-      const result = await ipc.exportMarkdown(sessionId);
-      if (result.saved) void messageApi.success(`Markdown 저장 완료: ${result.path}`);
-    },
-    [messageApi],
-  );
-
-  const handleCopyCurl = useCallback(
-    async (recordId: number) => {
-      await ipc.copyCurl(recordId);
-      void messageApi.success('curl 명령어를 클립보드에 복사했어요');
-    },
-    [messageApi],
-  );
+  // ── 트래픽 단건 액션 ──
 
   const handleSaveSnapshot = useCallback(
     async (record: TrafficRecord) => {
@@ -183,10 +108,10 @@ const App = () => {
     [messageApi],
   );
 
-  const handleCopySnippet = useCallback(
-    async (text: string, label: string) => {
-      await ipc.copyToClipboard(text);
-      void messageApi.success(`${label} 코드를 복사했어요`);
+  const handleAddFavorite = useCallback(
+    async (record: TrafficRecord) => {
+      await ipc.saveFavorite({ method: record.method, url: record.url, note: '' });
+      void messageApi.success('즐겨찾기에 추가했어요');
     },
     [messageApi],
   );
@@ -206,100 +131,6 @@ const App = () => {
     [messageApi],
   );
 
-  const handleExportPostman = useCallback(
-    async (sessionId: number) => {
-      const result = await ipc.exportPostman(sessionId);
-      if (result.saved) void messageApi.success(`Postman 컬렉션 저장: ${result.path}`);
-    },
-    [messageApi],
-  );
-
-  const handleExportOpenApi = useCallback(
-    async (sessionId: number) => {
-      const result = await ipc.exportOpenApi(sessionId);
-      if (result.saved) void messageApi.success(`OpenAPI 스펙 저장: ${result.path}`);
-    },
-    [messageApi],
-  );
-
-  const handleExportK6 = useCallback(
-    async (sessionId: number) => {
-      const result = await ipc.exportK6(sessionId);
-      if (result.saved) void messageApi.success(`k6 스크립트 저장: ${result.path}`);
-    },
-    [messageApi],
-  );
-
-  const handleImportHar = useCallback(async () => {
-    const result = await ipc.importHar();
-    if (result.imported) {
-      await reload();
-      void messageApi.success('HAR을 새 세션으로 가져왔어요');
-    }
-  }, [messageApi, reload]);
-
-  const handleAddFavorite = useCallback(
-    async (record: TrafficRecord) => {
-      await ipc.saveFavorite({ method: record.method, url: record.url, note: '' });
-      void messageApi.success('즐겨찾기에 추가했어요');
-    },
-    [messageApi],
-  );
-
-  // ── AI (#21~#24) ──
-  const runAi = useCallback(async (title: string, task: () => Promise<string>) => {
-    setAiModal({ open: true, title, loading: true, text: '' });
-    try {
-      const text = await task();
-      setAiModal({ open: true, title, loading: false, text });
-    } catch (caught) {
-      setAiModal({
-        open: true,
-        title,
-        loading: false,
-        text: caught instanceof Error ? caught.message : 'AI 호출 실패',
-      });
-    }
-  }, []);
-
-  const handleAiExplain = useCallback(
-    (record: TrafficRecord) => void runAi('AI 응답 설명', () => ipc.aiExplain(record.id)),
-    [runAi],
-  );
-
-  const handleAiTests = useCallback(
-    (record: TrafficRecord) => void runAi('AI 테스트 케이스', () => ipc.aiGenerateTests(record.id)),
-    [runAi],
-  );
-
-  const handleAiAnomalies = useCallback(() => {
-    if (selectedSessionId === null) {
-      void messageApi.info('세션을 먼저 선택하세요');
-      return;
-    }
-    void runAi('AI 이상 탐지', () => ipc.aiDetectAnomalies(selectedSessionId));
-  }, [selectedSessionId, runAi, messageApi]);
-
-  const handleAiSearch = useCallback(
-    (query: string) => {
-      setAiSearchOpen(false);
-      if (selectedSessionId === null) {
-        void messageApi.info('세션을 먼저 선택하세요');
-        return;
-      }
-      void runAi(`AI 검색: ${query}`, async () => {
-        const ids = await ipc.aiSearch(selectedSessionId, query);
-        if (ids.length === 0) return '매칭되는 트래픽이 없어요.';
-        const idSet = new Set(ids);
-        const matched = records.filter((record) => idSet.has(record.id));
-        return matched
-          .map((record) => `#${record.id} ${record.method} ${record.path} → ${record.statusCode}`)
-          .join('\n');
-      });
-    },
-    [selectedSessionId, records, runAi, messageApi],
-  );
-
   return (
     <ConfigProvider
       locale={koKR}
@@ -310,20 +141,20 @@ const App = () => {
         <TopToolbar
           status={status}
           error={error}
-          systemProxyEnabled={systemProxyEnabled}
+          systemProxyEnabled={proxy.enabled}
           onStart={handleStart}
           onStop={handleStop}
-          onToggleSystemProxy={(enabled) => void handleToggleSystemProxy(enabled)}
-          onInstallCert={() => void handleInstallCert()}
+          onToggleSystemProxy={(enabled) => void proxy.toggle(enabled)}
+          onInstallCert={() => void proxy.installCert()}
           onOpenSettings={() => setSettingsOpen(true)}
           onOpenCompare={() => setCompareOpen(true)}
           onOpenSnapshots={() => setSnapshotsOpen(true)}
-          onImportHar={() => void handleImportHar()}
+          onImportHar={() => void exporter.importHar()}
           onOpenStats={() => setStatsOpen(true)}
           onOpenFavorites={() => setFavoritesOpen(true)}
           onOpenPairing={() => setPairingOpen(true)}
-          onAiAnomalies={handleAiAnomalies}
-          onAiSearch={() => setAiSearchOpen(true)}
+          onAiAnomalies={ai.anomalies}
+          onAiSearch={() => ai.setSearchOpen(true)}
           darkMode={darkMode}
           onToggleDarkMode={setDarkMode}
         />
@@ -332,19 +163,19 @@ const App = () => {
             sessions={sessions}
             selectedSessionId={selectedSessionId}
             recordingSessionId={status.recordingSessionId}
-            replaySessionId={replayStatus?.sessionId ?? null}
+            replaySessionId={replay.status?.sessionId ?? null}
             onSelect={(sessionId) => {
               setSelectedSessionId(sessionId);
               setSelectedRecord(null);
             }}
             onDelete={handleDelete}
-            onStartReplay={(sessionId) => void handleStartReplay(sessionId)}
-            onStopReplay={() => void handleStopReplay()}
-            onExportHar={(sessionId) => void handleExportHar(sessionId)}
-            onExportMarkdown={(sessionId) => void handleExportMarkdown(sessionId)}
-            onExportPostman={(sessionId) => void handleExportPostman(sessionId)}
-            onExportOpenApi={(sessionId) => void handleExportOpenApi(sessionId)}
-            onExportK6={(sessionId) => void handleExportK6(sessionId)}
+            onStartReplay={(sessionId) => void replay.start(sessionId)}
+            onStopReplay={() => void replay.stop()}
+            onExportHar={(sessionId) => void exporter.exportHar(sessionId)}
+            onExportMarkdown={(sessionId) => void exporter.exportMarkdown(sessionId)}
+            onExportPostman={(sessionId) => void exporter.exportPostman(sessionId)}
+            onExportOpenApi={(sessionId) => void exporter.exportOpenApi(sessionId)}
+            onExportK6={(sessionId) => void exporter.exportK6(sessionId)}
           />
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ padding: '8px 16px 0' }}>
@@ -379,8 +210,8 @@ const App = () => {
           <div style={{ width: 480, borderLeft: '1px solid #f0f0f0', overflow: 'hidden', flexShrink: 0 }}>
             <TrafficDetail
               record={selectedRecord}
-              onCopyCurl={(recordId) => void handleCopyCurl(recordId)}
-              onCopySnippet={(text, label) => void handleCopySnippet(text, label)}
+              onCopyCurl={(recordId) => void exporter.copyCurl(recordId)}
+              onCopySnippet={(text, label) => void exporter.copySnippet(text, label)}
               onResend={(record) => {
                 setComposerSeed(record);
                 setComposerOpen(true);
@@ -388,8 +219,8 @@ const App = () => {
               onSaveSnapshot={(record) => void handleSaveSnapshot(record)}
               onPickDiff={handlePickDiff}
               onAddFavorite={(record) => void handleAddFavorite(record)}
-              onAiExplain={handleAiExplain}
-              onAiTests={handleAiTests}
+              onAiExplain={ai.explain}
+              onAiTests={ai.tests}
             />
           </div>
         </div>
@@ -419,13 +250,13 @@ const App = () => {
       <StatsModal open={statsOpen} records={records} onClose={() => setStatsOpen(false)} />
       <MobilePairingModal open={pairingOpen} onClose={() => setPairingOpen(false)} />
       <AiResultModal
-        open={aiModal.open}
-        title={aiModal.title}
-        loading={aiModal.loading}
-        text={aiModal.text}
-        onClose={() => setAiModal((previous) => ({ ...previous, open: false }))}
+        open={ai.modal.open}
+        title={ai.modal.title}
+        loading={ai.modal.loading}
+        text={ai.modal.text}
+        onClose={ai.closeModal}
       />
-      <AiSearchModal open={aiSearchOpen} onSearch={handleAiSearch} onClose={() => setAiSearchOpen(false)} />
+      <AiSearchModal open={ai.searchOpen} onSearch={ai.search} onClose={() => ai.setSearchOpen(false)} />
       <FavoritesDrawer
         open={favoritesOpen}
         onClose={() => setFavoritesOpen(false)}

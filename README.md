@@ -68,19 +68,38 @@ npm run package:win   # Windows nsis 인스톨러 (dist/)
 
 ```
 src/
-├── main/               # Electron Main 프로세스
-│   ├── index.ts        # 앱 진입점
-│   ├── appContext.ts   # 엔진/저장소 수명주기
-│   ├── ipcHandlers.ts  # IPC 채널 등록
-│   ├── proxy/          # ProxyEngine(MITM) + CertManager
-│   ├── store/          # RecordStore (node:sqlite)
-│   ├── replay/         # ReplayServer (mock 재생)
-│   ├── system/         # 시스템 프록시 + 인증서 설치
-│   └── export/         # HAR/curl/Markdown 변환
-├── preload/            # contextBridge API
-├── renderer/           # React UI
-└── shared/             # Main/Renderer 공유 타입
+├── main/                 # Electron Main 프로세스
+│   ├── index.ts          # 앱 진입점 + 전역 크래시 가드
+│   ├── appContext.ts     # 엔진/저장소 수명주기
+│   ├── settings.ts       # 타입드 설정 파사드 (키·기본값·직렬화 단일 소스)
+│   ├── logger.ts         # 파일+콘솔 로거
+│   ├── ipcHandlers.ts    # 도메인별 핸들러 등록 오케스트레이터
+│   ├── ipc/              # 도메인별 IPC 핸들러 + handle() 로깅 래퍼
+│   ├── proxy/            # ProxyEngine(MITM) + CertManager
+│   ├── store/            # RecordStore (node:sqlite)
+│   ├── replay/           # ReplayServer (mock 재생)
+│   ├── system/           # 시스템 프록시 + 인증서 설치
+│   └── export/           # HAR/curl/Markdown 변환
+├── preload/              # contextBridge API (window.api — 렌더러 IPC 단일 계약)
+├── renderer/             # React UI
+│   └── src/
+│       ├── App.tsx       # 얇은 조합 — 상태/JSX 배선만
+│       ├── hooks/        # 기능별 액션 훅 (useReplay, useExportActions, useAiActions …)
+│       └── services/ipc.ts  # = window.api (재래핑 없음)
+└── shared/               # Main/Renderer 공유
+    ├── channels.ts       # IPC 채널명 단일 소스 (CH/EV)
+    └── types.ts          # 공유 타입
 
-tests/                  # vitest 단위/통합 테스트 (34개)
-docs/superpowers/       # 설계 스펙 + 구현 플랜
+tests/                    # vitest 단위/통합 테스트 (148개)
+docs/superpowers/         # 설계 스펙 + 구현 플랜
 ```
+
+### 기능(IPC 채널) 추가 방법
+
+채널명·타입의 단일 소스를 두어 변경 지점을 최소화했다. 새 IPC 기능 하나를 추가하려면:
+
+1. `src/shared/channels.ts` — `CH`에 채널명 한 줄 추가
+2. `src/main/ipc/<도메인>Handlers.ts` — `handle(CH.xxx, …)`로 처리 등록 (에러는 `handle` 래퍼가 자동 로깅)
+3. `src/preload/index.ts` — `api`에 메서드 추가 (렌더러에서 쓸 타입드 함수)
+
+렌더러의 `services/ipc.ts`는 `window.api`를 그대로 가리키므로 **건드릴 필요 없다**. 설정 항목을 추가할 때는 `src/main/settings.ts`에 getter/setter 한 쌍만 더한다.
