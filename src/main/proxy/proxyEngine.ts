@@ -7,6 +7,7 @@ import type { CapturedTraffic, OverrideRule, ThrottleConfig } from '../../shared
 import type { CertManager } from './certManager';
 import { decodeBody } from './decompress';
 import { matchOverrideRule } from '../../shared/interception';
+import { log } from '../logger';
 
 type InterceptionConfig = {
   overrideRules: OverrideRule[];
@@ -136,7 +137,14 @@ export class ProxyEngine {
   }
 
   private emit(traffic: CapturedTraffic): void {
-    for (const listener of this.listeners) listener(traffic);
+    // 리스너 하나가 throw해도 다른 리스너/프록시 흐름이 죽지 않도록 격리한다.
+    for (const listener of this.listeners) {
+      try {
+        listener(traffic);
+      } catch (error) {
+        log.error('트래픽 리스너 처리 실패', error);
+      }
+    }
   }
 
   // ─────────────────────────── HTTP 프록시 서버 ───────────────────────────
@@ -147,7 +155,10 @@ export class ProxyEngine {
       server.on('connect', (req, socket, head) => this.handleConnect(req, socket as net.Socket, head));
       server.on('upgrade', (req, socket, head) => this.handleUpgrade(req, socket as net.Socket, head));
       server.on('connection', (socket) => this.trackSocket(socket));
-      server.on('error', reject);
+      server.on('error', (error) => {
+        log.error('프록시 서버 오류', error);
+        reject(error);
+      });
       server.listen(port, () => {
         this.httpServer = server;
         resolve((server.address() as AddressInfo).port);
@@ -242,7 +253,10 @@ export class ProxyEngine {
         (req, res) => this.handleDecryptedRequest(req, res),
       );
       server.on('connection', (socket) => this.trackSocket(socket));
-      server.on('error', reject);
+      server.on('error', (error) => {
+        log.error('MITM 서버 오류', error);
+        reject(error);
+      });
       server.listen(0, '127.0.0.1', () => {
         this.mitmPort = (server.address() as AddressInfo).port;
         this.mitmServer = server;
@@ -306,7 +320,13 @@ export class ProxyEngine {
     clientReq.on('data', (chunk: Buffer) => requestChunks.push(chunk));
     clientReq.on('error', () => clientRes.destroy());
     clientReq.on('end', () => {
-      void this.dispatchRequest(clientReq, clientRes, target, startedAt, requestChunks);
+      this.dispatchRequest(clientReq, clientRes, target, startedAt, requestChunks).catch((error) => {
+        log.error('요청 중계 실패', error);
+        if (!clientRes.headersSent) {
+          clientRes.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
+        }
+        clientRes.end('프록시 처리 중 오류가 발생했어요.');
+      });
     });
   }
 

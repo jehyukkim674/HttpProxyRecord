@@ -2,6 +2,18 @@ import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { AppContext } from './appContext';
 import { registerIpcHandlers } from './ipcHandlers';
+import { initLogger, log } from './logger';
+
+// 로그를 userData/logs/main.log + 콘솔에 기록 (app.getPath는 ready 전에도 사용 가능)
+initLogger(path.join(app.getPath('userData'), 'logs'));
+
+// 전역 크래시 가드 — 예기치 못한 에러로 프로세스가 죽지 않도록 로깅만 하고 유지
+process.on('uncaughtException', (error) => {
+  log.error('uncaughtException', error);
+});
+process.on('unhandledRejection', (reason) => {
+  log.error('unhandledRejection', reason);
+});
 
 /**
  * #10 자동 업데이트: 패키징된 앱에서만 electron-updater로 업데이트를 확인한다.
@@ -13,8 +25,9 @@ const checkForUpdates = async (): Promise<void> => {
   try {
     const { autoUpdater } = await import('electron-updater');
     await autoUpdater.checkForUpdatesAndNotify();
-  } catch {
-    // 릴리스 피드 미설정 등 — 무시 (업데이트는 선택 기능)
+  } catch (error) {
+    // 릴리스 피드 미설정 등 — 치명적이지 않음. 디버깅 위해 기록만.
+    log.info('자동 업데이트 확인 생략', error instanceof Error ? error.message : error);
   }
 };
 

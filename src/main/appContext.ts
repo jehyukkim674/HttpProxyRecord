@@ -8,6 +8,7 @@ import { matchExcludeDomain } from './proxy/excludeFilter';
 import { RecordStore } from './store/recordStore';
 import { ReplayServer } from './replay/replayServer';
 import { SystemProxyManager } from './system/systemProxy';
+import { log } from './logger';
 import type {
   CapturedTraffic,
   OverrideRule,
@@ -64,7 +65,8 @@ export class AppContext {
     if (!raw) return fallback;
     try {
       return JSON.parse(raw) as T;
-    } catch {
+    } catch (error) {
+      log.warn(`설정 '${key}' 파싱 실패 — 기본값 사용`, error);
       return fallback;
     }
   }
@@ -134,13 +136,18 @@ export class AppContext {
   }
 
   private handleTraffic(traffic: CapturedTraffic): void {
-    if (this.recordingSessionId === null) return;
-    // 제외 도메인은 기록·표시하지 않는다 (중계는 ProxyEngine이 이미 수행)
-    if (matchExcludeDomain(traffic.host, this.excludeDomains)) return;
+    // 프록시 이벤트 콜백 안에서 실행되므로, DB/알림 실패가 프록시를 죽이지 않도록 격리한다.
+    try {
+      if (this.recordingSessionId === null) return;
+      // 제외 도메인은 기록·표시하지 않는다 (중계는 ProxyEngine이 이미 수행)
+      if (matchExcludeDomain(traffic.host, this.excludeDomains)) return;
 
-    const record = this.recordStore.insertTraffic(this.recordingSessionId, traffic);
-    this.broadcaster?.(record);
-    this.maybeAlert(traffic);
+      const record = this.recordStore.insertTraffic(this.recordingSessionId, traffic);
+      this.broadcaster?.(record);
+      this.maybeAlert(traffic);
+    } catch (error) {
+      log.error('트래픽 기록 실패', error);
+    }
   }
 
   // ─────────────────────────── 조건부 알림 (#30) ───────────────────────────
