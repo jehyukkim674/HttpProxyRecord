@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, Button, Input, Space, Switch, Tag } from 'antd';
 import {
+  AuditOutlined,
   BarChartOutlined,
   BulbOutlined,
   CameraOutlined,
@@ -36,6 +37,7 @@ type TopToolbarProps = {
   onAiAnomalies: () => void;
   onAiSearch: () => void;
   onOpenScripts: () => void;
+  onOpenAnalysis: () => void;
   darkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
 };
@@ -58,6 +60,7 @@ export const TopToolbar = ({
   onAiAnomalies,
   onAiSearch,
   onOpenScripts,
+  onOpenAnalysis,
   darkMode,
   onToggleDarkMode,
 }: TopToolbarProps) => {
@@ -129,6 +132,9 @@ export const TopToolbar = ({
         </Button>
         <Button icon={<CodeOutlined />} onClick={onOpenScripts}>
           스크립트
+        </Button>
+        <Button icon={<AuditOutlined />} onClick={onOpenAnalysis}>
+          분석
         </Button>
         <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
           설정

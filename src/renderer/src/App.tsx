@@ -19,6 +19,7 @@ import { MobilePairingModal } from './components/MobilePairingModal';
 import { AiResultModal } from './components/AiResultModal';
 import { AiSearchModal } from './components/AiSearchModal';
 import { ScriptsDrawer } from './components/ScriptsDrawer';
+import { AnalysisModal } from './components/AnalysisModal';
 import { useProxyControl } from './hooks/useProxyControl';
 import { useSessions } from './hooks/useSessions';
 import { useTraffic } from './hooks/useTraffic';
@@ -61,6 +62,7 @@ const App = () => {
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [pairingOpen, setPairingOpen] = useState(false);
   const [scriptsOpen, setScriptsOpen] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
 
   const handleRecordingChanged = useCallback(() => {
     void reload();
@@ -158,6 +160,7 @@ const App = () => {
           onAiAnomalies={ai.anomalies}
           onAiSearch={() => ai.setSearchOpen(true)}
           onOpenScripts={() => setScriptsOpen(true)}
+          onOpenAnalysis={() => setAnalysisOpen(true)}
           darkMode={darkMode}
           onToggleDarkMode={setDarkMode}
         />
@@ -261,6 +264,15 @@ const App = () => {
       />
       <AiSearchModal open={ai.searchOpen} onSearch={ai.search} onClose={() => ai.setSearchOpen(false)} />
       <ScriptsDrawer open={scriptsOpen} onClose={() => setScriptsOpen(false)} />
+      <AnalysisModal
+        open={analysisOpen}
+        records={records}
+        onClose={() => setAnalysisOpen(false)}
+        onJump={(recordId) => {
+          const found = records.find((record) => record.id === recordId);
+          if (found) setSelectedRecord(found);
+        }}
+      />
       <FavoritesDrawer
         open={favoritesOpen}
         onClose={() => setFavoritesOpen(false)}
