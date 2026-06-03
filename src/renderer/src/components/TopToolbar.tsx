@@ -4,6 +4,7 @@ import {
   BarChartOutlined,
   BulbOutlined,
   CameraOutlined,
+  CodeOutlined,
   DiffOutlined,
   ImportOutlined,
   MobileOutlined,
@@ -34,6 +35,7 @@ type TopToolbarProps = {
   onOpenPairing: () => void;
   onAiAnomalies: () => void;
   onAiSearch: () => void;
+  onOpenScripts: () => void;
   darkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
 };
@@ -55,6 +57,7 @@ export const TopToolbar = ({
   onOpenPairing,
   onAiAnomalies,
   onAiSearch,
+  onOpenScripts,
   darkMode,
   onToggleDarkMode,
 }: TopToolbarProps) => {
@@ -123,6 +126,9 @@ export const TopToolbar = ({
         </Button>
         <Button icon={<SearchOutlined />} onClick={onAiSearch}>
           AI 검색
+        </Button>
+        <Button icon={<CodeOutlined />} onClick={onOpenScripts}>
+          스크립트
         </Button>
         <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
           설정
