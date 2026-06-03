@@ -29,7 +29,8 @@ describe('toCurl', () => {
 
     expect(curl).toContain("curl -X POST 'https://api.example.com/users'");
     expect(curl).toContain("-H 'content-type: application/json'");
-    expect(curl).toContain("-H 'authorization: Bearer token123'");
+    // authorization은 민감 헤더라 마스킹됨 (별도 마스킹 테스트에서 검증)
+    expect(curl).toContain("-H 'authorization: ***REDACTED***'");
     expect(curl).toContain(`-d '{"name":"홍길동"}'`);
   });
 
