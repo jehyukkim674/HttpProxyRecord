@@ -2,8 +2,9 @@ import type { CSSProperties } from 'react';
 import type { LineDiff } from '../../../shared/types';
 
 const lineStyle = (type: LineDiff['type']): CSSProperties => ({
-  background: type === 'added' ? '#f6ffed' : type === 'removed' ? '#fff1f0' : undefined,
-  color: type === 'added' ? '#237804' : type === 'removed' ? '#a8071a' : '#333',
+  background: type === 'added' ? 'var(--diff-add-bg)' : type === 'removed' ? 'var(--diff-del-bg)' : undefined,
+  color:
+    type === 'added' ? 'var(--diff-add-fg)' : type === 'removed' ? 'var(--diff-del-fg)' : 'var(--app-text)',
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-all',
 });

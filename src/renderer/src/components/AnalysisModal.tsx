@@ -49,7 +49,9 @@ export const AnalysisModal = ({ open, records, onClose, onJump }: Props) => {
             >
               <Space>
                 <Tag color={COLOR[finding.severity]}>{LABEL[finding.severity]}</Tag>
-                <span style={{ color: '#888', fontFamily: 'monospace', fontSize: 12 }}>{finding.rule}</span>
+                <span style={{ color: 'var(--app-muted)', fontFamily: 'monospace', fontSize: 12 }}>
+                  {finding.rule}
+                </span>
                 <span>{finding.message}</span>
               </Space>
             </List.Item>

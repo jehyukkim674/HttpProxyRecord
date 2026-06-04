@@ -71,7 +71,7 @@ export const TrafficFilterBar = ({ filter, onChange, total, shown }: TrafficFilt
         <Button size="small" onClick={() => onChange(emptyFilter())}>
           초기화
         </Button>
-        <span style={{ color: '#999' }}>
+        <span style={{ color: 'var(--app-muted)' }}>
           {shown}/{total}건
         </span>
       </Space>

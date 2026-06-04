@@ -179,7 +179,10 @@ export const GuideBuilderDrawer = ({ open, onClose }: Props) => {
             renderItem={(step, index) => (
               <List.Item
                 onClick={() => setStepIndex(index)}
-                style={{ cursor: 'pointer', background: index === stepIndex ? '#f0f5ff' : undefined }}
+                style={{
+                  cursor: 'pointer',
+                  background: index === stepIndex ? 'var(--app-selected)' : undefined,
+                }}
                 actions={[
                   <Button
                     key="d"

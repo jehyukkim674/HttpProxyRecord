@@ -90,7 +90,7 @@ export const TrafficTable = ({ records, selectedRecordId, onSelect }: TrafficTab
         onClick: () => onSelect(record),
         style: {
           cursor: 'pointer',
-          background: record.id === selectedRecordId ? '#e6f4ff' : undefined,
+          background: record.id === selectedRecordId ? 'var(--app-selected)' : undefined,
         },
       })}
     />

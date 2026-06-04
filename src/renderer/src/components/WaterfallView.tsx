@@ -61,7 +61,9 @@ export const WaterfallView = ({ records }: WaterfallViewProps) => {
               }}
             />
           </div>
-          <div style={{ width: 70, flexShrink: 0, textAlign: 'right', fontSize: 12, color: '#999' }}>
+          <div
+            style={{ width: 70, flexShrink: 0, textAlign: 'right', fontSize: 12, color: 'var(--app-muted)' }}
+          >
             {row.widthMs}ms
           </div>
         </div>

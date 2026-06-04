@@ -47,7 +47,7 @@ export const SessionSidebar = ({
             style={{
               cursor: 'pointer',
               padding: '8px 12px',
-              background: session.id === selectedSessionId ? '#e6f4ff' : undefined,
+              background: session.id === selectedSessionId ? 'var(--app-selected)' : undefined,
             }}
             actions={[
               <Dropdown

@@ -61,7 +61,10 @@ export const ScriptsDrawer = ({ open, onClose }: Props) => {
             renderItem={(item) => (
               <List.Item
                 onClick={() => setSelected(item)}
-                style={{ cursor: 'pointer', background: selected?.id === item.id ? '#f0f5ff' : undefined }}
+                style={{
+                  cursor: 'pointer',
+                  background: selected?.id === item.id ? 'var(--app-selected)' : undefined,
+                }}
                 actions={[
                   <Switch
                     key="t"

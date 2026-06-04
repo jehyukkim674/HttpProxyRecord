@@ -6,10 +6,10 @@ const isExpandable = (value: unknown): value is Record<string, unknown> | unknow
   typeof value === 'object' && value !== null;
 
 const leafColor = (value: unknown): string => {
-  if (typeof value === 'string') return '#22863a';
-  if (typeof value === 'number') return '#005cc5';
-  if (typeof value === 'boolean') return '#e36209';
-  return '#999';
+  if (typeof value === 'string') return 'var(--json-string)';
+  if (typeof value === 'number') return 'var(--json-number)';
+  if (typeof value === 'boolean') return 'var(--json-boolean)';
+  return 'var(--app-muted)';
 };
 
 const formatLeaf = (value: unknown): string =>
@@ -23,7 +23,7 @@ export const JsonTree = ({ data, name, depth = 0 }: Props) => {
   if (!isExpandable(data)) {
     return (
       <div style={{ ...indent, fontFamily: 'monospace', fontSize: 12 }}>
-        {name !== undefined && <span style={{ color: '#9b2393' }}>{name}: </span>}
+        {name !== undefined && <span style={{ color: 'var(--json-key)' }}>{name}: </span>}
         <span style={{ color: leafColor(data) }}>{formatLeaf(data)}</span>
       </div>
     );
@@ -37,9 +37,9 @@ export const JsonTree = ({ data, name, depth = 0 }: Props) => {
   return (
     <div style={{ fontFamily: 'monospace', fontSize: 12 }}>
       <div style={{ ...indent, cursor: 'pointer' }} onClick={() => setOpen((value) => !value)}>
-        <span style={{ color: '#888' }}>{open ? '▼' : '▶'} </span>
-        {name !== undefined && <span style={{ color: '#9b2393' }}>{name}: </span>}
-        <span style={{ color: '#888' }}>
+        <span style={{ color: 'var(--app-muted)' }}>{open ? '▼' : '▶'} </span>
+        {name !== undefined && <span style={{ color: 'var(--json-key)' }}>{name}: </span>}
+        <span style={{ color: 'var(--app-muted)' }}>
           {openBracket}
           {!open && `…${entries.length}${closeBracket}`}
         </span>
@@ -49,7 +49,7 @@ export const JsonTree = ({ data, name, depth = 0 }: Props) => {
           {entries.map(([key, value]) => (
             <JsonTree key={key} name={key} data={value} depth={depth + 1} />
           ))}
-          <div style={{ ...indent, color: '#888' }}>{closeBracket}</div>
+          <div style={{ ...indent, color: 'var(--app-muted)' }}>{closeBracket}</div>
         </>
       )}
     </div>

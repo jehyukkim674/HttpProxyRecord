@@ -32,6 +32,19 @@ html[data-theme='light'] {
   --scroll-thumb: rgba(0, 0, 0, 0.2);
   --scroll-thumb-hover: rgba(0, 0, 0, 0.35);
   --selection-bg: rgba(22, 119, 255, 0.2);
+  /* 리스트 선택 하이라이트 + 보조 텍스트 */
+  --app-selected: #e6f4ff;
+  --app-muted: rgba(0, 0, 0, 0.45);
+  /* diff 추가/삭제 */
+  --diff-add-bg: #f6ffed;
+  --diff-add-fg: #237804;
+  --diff-del-bg: #fff1f0;
+  --diff-del-fg: #a8071a;
+  /* JSON 트리 구문 색 (오른쪽 상세 패널) */
+  --json-string: #22863a;
+  --json-number: #005cc5;
+  --json-boolean: #e36209;
+  --json-key: #9b2393;
 }
 
 /* 다크 — antd v6 darkAlgorithm 토큰에 맞춘 값 */
@@ -43,6 +56,19 @@ html[data-theme='dark'] {
   --scroll-thumb: rgba(255, 255, 255, 0.18);
   --scroll-thumb-hover: rgba(255, 255, 255, 0.32);
   --selection-bg: rgba(22, 119, 255, 0.35);
+  /* 리스트 선택 하이라이트 + 보조 텍스트 — antd dark controlItemBgActive 계열 */
+  --app-selected: #111a2c;
+  --app-muted: rgba(255, 255, 255, 0.45);
+  /* diff 추가/삭제 — 어두운 배경 + 밝은 글자 */
+  --diff-add-bg: #162312;
+  --diff-add-fg: #95de64;
+  --diff-del-bg: #2a1215;
+  --diff-del-fg: #ff7875;
+  /* JSON 트리 구문 색 — 다크에서 대비 확보(밝은 톤) */
+  --json-string: #7ee787;
+  --json-number: #79c0ff;
+  --json-boolean: #ffa657;
+  --json-key: #d2a8ff;
 }
 
 /* 텍스트 선택 하이라이트도 테마를 따라가게 */
