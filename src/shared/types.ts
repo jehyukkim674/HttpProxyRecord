@@ -162,3 +162,9 @@ export type GuideBox = {
 export type GuideStep = { id: string; imageDataUrl: string; boxes: GuideBox[]; caption?: string };
 export type Guide = { id: number; title: string; steps: GuideStep[]; createdAt: string };
 export type GuideSummary = { id: number; title: string; createdAt: string; stepCount: number };
+
+// 자동 업데이트 확인 결과 (available/latest/error)
+export type UpdateCheck =
+  | { kind: 'available'; version: string; notes?: string; canAutoInstall: boolean }
+  | { kind: 'latest' }
+  | { kind: 'error'; message: string };

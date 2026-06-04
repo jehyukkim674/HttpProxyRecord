@@ -16,6 +16,7 @@ import type {
   SnapshotVerifyResult,
   ThrottleConfig,
   TrafficRecord,
+  UpdateCheck,
 } from '../shared/types';
 
 type ReplayOptions = { applyDelay: boolean; passthrough: boolean };
@@ -172,6 +173,10 @@ const api = {
   deleteGuide: (id: number): Promise<GuideSummary[]> => ipcRenderer.invoke(CH.guideDelete, id),
   exportGuideHtml: (title: string, html: string): Promise<{ saved: boolean; path?: string }> =>
     ipcRenderer.invoke(CH.guideExportHtml, title, html),
+
+  // 자동 업데이트
+  checkUpdate: (): Promise<UpdateCheck> => ipcRenderer.invoke(CH.updateCheck),
+  installUpdate: (): Promise<void> => ipcRenderer.invoke(CH.updateInstall),
   onScriptLog: (
     callback: (entry: { scriptId: string; level: string; message: string }) => void,
   ): (() => void) => {

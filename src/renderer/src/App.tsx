@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ConfigProvider, Segmented, message, theme } from 'antd';
+import { Alert, Button, ConfigProvider, Segmented, Space, message, theme } from 'antd';
 import koKR from 'antd/locale/ko_KR';
 import { TopToolbar } from './components/TopToolbar';
 import { SessionSidebar } from './components/SessionSidebar';
@@ -33,6 +33,7 @@ import { useSystemProxy } from './hooks/useSystemProxy';
 import { useReplay } from './hooks/useReplay';
 import { useExportActions } from './hooks/useExportActions';
 import { useAiActions } from './hooks/useAiActions';
+import { useUpdate } from './hooks/useUpdate';
 import { ipc } from './services/ipc';
 import type { TrafficRecord } from '../../shared/types';
 
@@ -50,6 +51,7 @@ const App = () => {
   const exporter = useExportActions(messageApi, reload);
   const ai = useAiActions(messageApi, selectedSessionId, records);
   const composerVars = useComposerVariables();
+  const updater = useUpdate(messageApi);
 
   // UI 토글/모달 상태
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -218,7 +220,33 @@ const App = () => {
     >
       {messageContextHolder}
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        {updater.available && (
+          <Alert
+            banner
+            type="info"
+            showIcon
+            message={`🚀 새 버전 v${updater.available.version} 사용 가능`}
+            description={updater.available.notes}
+            action={
+              <Space>
+                <Button
+                  size="small"
+                  type="primary"
+                  loading={updater.installing}
+                  onClick={() => void updater.install()}
+                >
+                  {updater.available.canAutoInstall ? '설치 후 재시작' : '다운로드'}
+                </Button>
+                <Button size="small" onClick={updater.dismiss}>
+                  닫기
+                </Button>
+              </Space>
+            }
+          />
+        )}
         <TopToolbar
+          onCheckUpdate={() => void updater.check()}
+          checkingUpdate={updater.checking}
           status={status}
           error={error}
           systemProxyEnabled={proxy.enabled}

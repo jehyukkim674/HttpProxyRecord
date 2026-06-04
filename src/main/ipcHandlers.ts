@@ -8,6 +8,7 @@ import { registerComposerSnapshotHandlers } from './ipc/composerSnapshotHandlers
 import { registerAiHandlers } from './ipc/aiHandlers';
 import { registerScriptHandlers } from './ipc/scriptHandlers';
 import { registerGuideHandlers } from './ipc/guideHandlers';
+import { registerUpdateHandlers } from './ipc/updateHandlers';
 
 /**
  * 모든 IPC 채널을 등록한다.
@@ -32,4 +33,5 @@ export const registerIpcHandlers = (context: AppContext, getWindow: () => Browse
   registerAiHandlers(context);
   registerScriptHandlers(context);
   registerGuideHandlers(context);
+  registerUpdateHandlers();
 };

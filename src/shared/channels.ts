@@ -86,6 +86,10 @@ export const CH = {
   guideSave: 'guide:save',
   guideDelete: 'guide:delete',
   guideExportHtml: 'guide:export-html',
+
+  // updateHandlers — 자동 업데이트 확인/설치
+  updateCheck: 'update:check',
+  updateInstall: 'update:install',
 } as const;
 
 /** Main→Renderer 단방향 푸시 이벤트 (`webContents.send` / `ipcRenderer.on`) */

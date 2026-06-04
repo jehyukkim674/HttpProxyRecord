@@ -5,6 +5,7 @@ import {
   BarChartOutlined,
   BulbOutlined,
   CameraOutlined,
+  CloudDownloadOutlined,
   CodeOutlined,
   DiffOutlined,
   FileTextOutlined,
@@ -47,6 +48,8 @@ type TopToolbarProps = {
   onOpenPalette: () => void;
   darkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
+  onCheckUpdate: () => void;
+  checkingUpdate: boolean;
 };
 
 export const TopToolbar = ({
@@ -74,6 +77,8 @@ export const TopToolbar = ({
   onOpenPalette,
   darkMode,
   onToggleDarkMode,
+  onCheckUpdate,
+  checkingUpdate,
 }: TopToolbarProps) => {
   const [sessionName, setSessionName] = useState('');
 
@@ -158,6 +163,14 @@ export const TopToolbar = ({
         </Button>
         <Button icon={<SettingOutlined />} onClick={onOpenSettings}>
           설정
+        </Button>
+        <Button
+          icon={<CloudDownloadOutlined />}
+          loading={checkingUpdate}
+          onClick={onCheckUpdate}
+          title="업데이트 확인"
+        >
+          업데이트
         </Button>
         <Button onClick={onOpenPalette} title="명령 팔레트 (Cmd/Ctrl+K)">
           ⌘K

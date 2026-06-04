@@ -15,21 +15,8 @@ process.on('unhandledRejection', (reason) => {
   log.error('unhandledRejection', reason);
 });
 
-/**
- * #10 자동 업데이트: 패키징된 앱에서만 electron-updater로 업데이트를 확인한다.
- * 실제 동작하려면 electron-builder.yml의 publish(예: GitHub Releases)와 서명/릴리스가 필요하다.
- * 개발 모드·publish 미설정 시 조용히 무시한다.
- */
-const checkForUpdates = async (): Promise<void> => {
-  if (!app.isPackaged) return;
-  try {
-    const { autoUpdater } = await import('electron-updater');
-    await autoUpdater.checkForUpdatesAndNotify();
-  } catch (error) {
-    // 릴리스 피드 미설정 등 — 치명적이지 않음. 디버깅 위해 기록만.
-    log.info('자동 업데이트 확인 생략', error instanceof Error ? error.message : error);
-  }
-};
+// 자동 업데이트 확인은 렌더러가 시작 시 ipc.checkUpdate()로 수행하고 앱 내 배너로 안내한다
+// (UpdateManager: src/main/system/updater.ts, updateHandlers). 네이티브 알림 대신 인앱 UX.
 
 let mainWindow: BrowserWindow | null = null;
 let appContext: AppContext | null = null;
@@ -84,7 +71,6 @@ void app.whenReady().then(() => {
   appContext = new AppContext();
   registerIpcHandlers(appContext, () => mainWindow);
   createWindow();
-  void checkForUpdates();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
