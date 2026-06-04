@@ -58,6 +58,21 @@ const normalizeNotes = (notes: unknown): string | undefined => {
   return undefined;
 };
 
+/**
+ * electron-updater(CommonJS)를 동적 import 할 때, ESM interop에 따라 named export `autoUpdater`가
+ * 모듈 최상위 대신 `.default` 아래로 들어가 undefined가 되는 경우가 있다(번들 환경 차이).
+ * 두 위치를 모두 확인해 안전하게 가져온다.
+ */
+const loadAutoUpdater = async (): Promise<import('electron-updater').AppUpdater> => {
+  const mod = (await import('electron-updater')) as unknown as {
+    autoUpdater?: import('electron-updater').AppUpdater;
+    default?: { autoUpdater?: import('electron-updater').AppUpdater };
+  };
+  const autoUpdater = mod.autoUpdater ?? mod.default?.autoUpdater;
+  if (!autoUpdater) throw new Error('electron-updater를 불러오지 못했습니다 (autoUpdater 없음)');
+  return autoUpdater;
+};
+
 /** 자동 업데이트 확인/설치 (swagger-man updater 패턴의 Electron 이식). */
 export class UpdateManager {
   /** 새 버전이 있는지 확인한다. 개발 모드에선 확인하지 않는다(latest). */
@@ -65,7 +80,7 @@ export class UpdateManager {
     const { app } = await import('electron');
     if (!app.isPackaged) return { kind: 'latest' };
     return resolveUpdateCheck(async () => {
-      const { autoUpdater } = await import('electron-updater');
+      const autoUpdater = await loadAutoUpdater();
       autoUpdater.autoDownload = false;
       autoUpdater.autoInstallOnAppQuit = false;
       const result = await autoUpdater.checkForUpdates();
@@ -84,7 +99,7 @@ export class UpdateManager {
     const { app, shell } = await import('electron');
 
     if (process.platform === 'win32' && app.isPackaged) {
-      const { autoUpdater } = await import('electron-updater');
+      const autoUpdater = await loadAutoUpdater();
       autoUpdater.autoDownload = false;
       await new Promise<void>((resolve, reject) => {
         autoUpdater.once('update-downloaded', () => resolve());
