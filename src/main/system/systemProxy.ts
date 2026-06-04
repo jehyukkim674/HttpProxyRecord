@@ -105,6 +105,20 @@ export const runProxyCommands = async (
   return { applied, failures };
 };
 
+/** 셸 인자를 작은따옴표로 감싸 안전하게 만든다 (공백 든 서비스명 등). */
+const shellQuote = (arg: string): string => `'${arg.replace(/'/g, "'\\''")}'`;
+
+/**
+ * macOS networksetup 명령들을 하나의 셸 스크립트로 합친다. (순수·테스트 가능)
+ *
+ * networksetup의 프록시 변경은 관리자 권한이 필요해 osascript의
+ * `do shell script ... with administrator privileges`로 한 번만 승격 실행한다.
+ * 끝에 `; true`를 붙여, 프록시를 지원하지 않는 일부 서비스가 실패해도(예: LG 모니터 USB
+ * 제어 인터페이스) 전체 스크립트는 0으로 종료되게 한다 — 실제 Wi-Fi/이더넷에는 적용된다.
+ */
+export const buildMacProxyScript = (commands: ProxyCommand[]): string =>
+  `${commands.map(([command, args]) => [command, ...args].map(shellQuote).join(' ')).join('; ')}; true`;
+
 /** 시스템 프록시를 실제로 등록/해제한다 */
 export class SystemProxyManager {
   private enabled = false;
@@ -132,22 +146,47 @@ export class SystemProxyManager {
   }
 
   /**
-   * 명령들을 적용하되, 프록시를 지원하지 않는 일부 서비스의 실패는 경고만 남기고 넘어간다.
-   * 모든 명령이 실패한 경우(권한 부족 등 진짜 실패)에만 에러를 던진다.
+   * 명령들을 적용한다.
+   * - macOS: networksetup이 관리자 권한을 요구하므로 osascript로 한 번 승격해 전체를 실행한다.
+   *   (사용자가 권한 프롬프트를 취소하면 에러를 던진다)
+   * - 그 외(Windows 등): 권한이 필요 없어 개별 실행하고, 일부 실패는 건너뛴다.
    */
   private async run(action: string, commands: ProxyCommand[]): Promise<void> {
+    if (commands.length === 0) return;
+
+    if (process.platform === 'darwin') {
+      await this.runElevated(action, commands);
+      return;
+    }
+
     const { applied, failures } = await runProxyCommands(commands, (command, args) =>
       execFileAsync(command, args).then(() => undefined),
     );
     for (const { command, error } of failures) {
-      const service = command[1][1] ?? command[1].join(' ');
-      log.warn(`${action}: 프록시를 지원하지 않는 네트워크 서비스 건너뜀`, {
-        service,
+      log.warn(`${action}: 일부 명령 실패(건너뜀)`, {
+        command: [command[0], ...command[1]].join(' '),
         message: error.message,
       });
     }
-    if (commands.length > 0 && applied === 0) {
-      throw new Error(`${action} 실패: ${failures[0]?.error.message ?? '적용된 네트워크 서비스가 없습니다'}`);
+    if (applied === 0) {
+      throw new Error(`${action} 실패: ${failures[0]?.error.message ?? '적용된 항목이 없습니다'}`);
+    }
+  }
+
+  /** macOS: networksetup 명령들을 관리자 권한으로 한 번에 실행한다 (네이티브 암호 프롬프트). */
+  private async runElevated(action: string, commands: ProxyCommand[]): Promise<void> {
+    const script = buildMacProxyScript(commands);
+    try {
+      await execFileAsync('osascript', [
+        '-e',
+        `do shell script ${JSON.stringify(script)} with administrator privileges`,
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('-128') || message.toLowerCase().includes('cancel')) {
+        throw new Error(`${action}이(가) 취소되었습니다 — 관리자 권한이 필요합니다`);
+      }
+      throw new Error(`${action} 실패: ${message}`);
     }
   }
 

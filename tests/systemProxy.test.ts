@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildProxyCommands, runProxyCommands } from '../src/main/system/systemProxy';
+import { buildMacProxyScript, buildProxyCommands, runProxyCommands } from '../src/main/system/systemProxy';
 
 describe('buildProxyCommands', () => {
   it('macOS 활성화 명령을 네트워크 서비스별로 만든다', () => {
@@ -136,5 +136,37 @@ describe('runProxyCommands', () => {
 
     expect(result.applied).toBe(2);
     expect(result.failures).toEqual([]);
+  });
+});
+
+describe('buildMacProxyScript', () => {
+  it('공백 든 서비스명을 따옴표로 감싸 한 줄 스크립트로 합치고 끝에 ; true를 붙인다', () => {
+    const commands = buildProxyCommands('darwin', 'enable', {
+      host: '127.0.0.1',
+      port: 8888,
+      networkServices: ['LG Monitor Controls', 'Wi-Fi'],
+    });
+
+    const script = buildMacProxyScript(commands);
+
+    // 공백 든 서비스명이 안전하게 인용됨 (osascript do shell script로 root 실행)
+    expect(script).toContain("'networksetup' '-setwebproxy' 'LG Monitor Controls' '127.0.0.1' '8888'");
+    expect(script).toContain("'networksetup' '-setwebproxy' 'Wi-Fi' '127.0.0.1' '8888'");
+    // 일부 서비스 실패해도 전체 종료코드 0이 되도록
+    expect(script.endsWith('; true')).toBe(true);
+    // 명령들은 ;로 연결
+    expect(script).toContain('; ');
+  });
+
+  it('작은따옴표가 든 서비스명을 이스케이프한다', () => {
+    const commands = buildProxyCommands('darwin', 'disable', {
+      host: '',
+      port: 0,
+      networkServices: ["Bob's Wi-Fi"],
+    });
+
+    const script = buildMacProxyScript(commands);
+
+    expect(script).toContain("'Bob'\\''s Wi-Fi'");
   });
 });
