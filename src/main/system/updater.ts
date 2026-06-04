@@ -23,8 +23,8 @@ export type UpdateChecker = () => Promise<UpdateInfo | null>;
 /**
  * 업데이트 확인 결과를 상태(available/latest/error)로 매핑한다. (순수 — checker 주입으로 테스트 가능)
  *
- * 무서명 macOS는 electron-updater(Squirrel.Mac)가 코드 서명을 요구해 자동 설치가 불가하므로
- * canAutoInstall=false로 표시한다(설치 대신 릴리스 페이지 안내). Windows(NSIS)는 자동 설치 가능.
+ * Windows(NSIS)는 electron-updater로, macOS(무서명)는 자체 자가 업데이터(macUpdater)로
+ * 자동 설치한다. 그 외(linux 등) 미지원 플랫폼만 canAutoInstall=false(릴리스 페이지 안내).
  */
 export const resolveUpdateCheck = async (check: UpdateChecker, platform: string): Promise<UpdateCheck> => {
   try {
@@ -34,7 +34,7 @@ export const resolveUpdateCheck = async (check: UpdateChecker, platform: string)
       kind: 'available',
       version: info.version,
       notes: info.notes,
-      canAutoInstall: platform === 'win32',
+      canAutoInstall: platform === 'win32' || platform === 'darwin',
     };
   } catch (error) {
     return { kind: 'error', message: error instanceof Error ? error.message : String(error) };
@@ -76,11 +76,13 @@ export class UpdateManager {
   }
 
   /**
-   * Windows: 업데이트를 내려받고 재시작하며 설치한다.
-   * macOS(무서명): 자동 설치가 불가하므로 릴리스 다운로드 페이지를 연다.
+   * Windows: electron-updater로 내려받고 재시작하며 설치한다.
+   * macOS(무서명): 자체 자가 업데이터로 zip을 받아 .app을 교체·재실행한다(macUpdater).
+   * 그 외/개발 모드/실패 시: 릴리스 다운로드 페이지를 연다.
    */
   async install(): Promise<void> {
     const { app, shell } = await import('electron');
+
     if (process.platform === 'win32' && app.isPackaged) {
       const { autoUpdater } = await import('electron-updater');
       autoUpdater.autoDownload = false;
@@ -93,7 +95,21 @@ export class UpdateManager {
       setImmediate(() => autoUpdater.quitAndInstall());
       return;
     }
-    log.info('무서명 빌드 — 릴리스 페이지로 안내', { platform: process.platform });
+
+    if (process.platform === 'darwin' && app.isPackaged) {
+      try {
+        const { applyMacUpdate } = await import('./macUpdater');
+        await applyMacUpdate();
+        setImmediate(() => app.quit()); // 종료되면 예약된 스왑 스크립트가 교체·재실행
+        return;
+      } catch (error) {
+        log.warn('mac 자가 업데이트 실패 — 릴리스 페이지로 안내', error);
+        await shell.openExternal(RELEASES_URL);
+        throw error instanceof Error ? error : new Error(String(error));
+      }
+    }
+
+    log.info('자동 설치 미지원 — 릴리스 페이지로 안내', { platform: process.platform });
     await shell.openExternal(RELEASES_URL);
   }
 }

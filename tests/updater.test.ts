@@ -30,8 +30,16 @@ describe('resolveUpdateCheck', () => {
     });
   });
 
-  it('무서명 macOS는 자동 설치 불가(canAutoInstall=false)', async () => {
+  it('macOS도 자체 자가 업데이터로 자동 설치 가능(canAutoInstall=true)', async () => {
     const result = await resolveUpdateCheck(async () => ({ version: '0.1.1' }), 'darwin');
+    expect(result.kind).toBe('available');
+    if (result.kind === 'available') {
+      expect(result.canAutoInstall).toBe(true);
+    }
+  });
+
+  it('미지원 플랫폼(linux)은 자동 설치 불가(canAutoInstall=false)', async () => {
+    const result = await resolveUpdateCheck(async () => ({ version: '0.1.1' }), 'linux');
     expect(result.kind).toBe('available');
     if (result.kind === 'available') {
       expect(result.canAutoInstall).toBe(false);
