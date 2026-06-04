@@ -1,6 +1,6 @@
 {
   "name": "http-proxy-record",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "HTTP/HTTPS 트래픽 캡처·기록·재생 데스크톱 앱",
   "main": "./out/main/index.js",
   "author": "jehyuk.kim",
