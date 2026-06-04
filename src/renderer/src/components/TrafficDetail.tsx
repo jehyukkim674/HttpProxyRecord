@@ -17,6 +17,13 @@ import { parseGraphQL } from '../../../shared/graphql';
 import { toFetch, toGoSnippet, toPythonRequests } from '../../../shared/snippets';
 import { BodyViewer } from './BodyViewer';
 
+/** 헤더·쿠키 값 — ellipsis로 자르지 않고 줄바꿈 + 복사 버튼으로 전체 노출 */
+const ValueCell = (value: string) => (
+  <Typography.Text copyable={{ text: value }} style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
+    {value}
+  </Typography.Text>
+);
+
 const SecurityTab = ({ record }: { record: TrafficRecord }) => {
   const token = findBearerToken(record.requestHeaders);
   const decoded = token ? decodeJwt(token) : null;
@@ -57,7 +64,7 @@ const SecurityTab = ({ record }: { record: TrafficRecord }) => {
           dataSource={cookies}
           columns={[
             { title: '이름', dataIndex: 'name', width: 180 },
-            { title: '값', dataIndex: 'value', ellipsis: true },
+            { title: '값', dataIndex: 'value', render: ValueCell },
           ]}
           size="small"
           pagination={false}
@@ -89,7 +96,7 @@ const HeaderTable = ({ headers }: { headers: Record<string, string> }) => (
     dataSource={Object.entries(headers).map(([name, value]) => ({ name, value }))}
     columns={[
       { title: '이름', dataIndex: 'name', width: 200 },
-      { title: '값', dataIndex: 'value', ellipsis: true },
+      { title: '값', dataIndex: 'value', render: ValueCell },
     ]}
     size="small"
     pagination={false}

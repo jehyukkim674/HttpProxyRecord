@@ -33,7 +33,9 @@ html[data-theme='light'] {
   --scroll-thumb-hover: rgba(0, 0, 0, 0.35);
   --selection-bg: rgba(22, 119, 255, 0.2);
   /* 리스트 선택 하이라이트 + 보조 텍스트 */
-  --app-selected: #e6f4ff;
+  --app-selected: #cfe7ff;
+  --app-selected-fg: rgba(0, 0, 0, 0.88);
+  --app-selected-accent: #1677ff;
   --app-muted: rgba(0, 0, 0, 0.45);
   /* diff 추가/삭제 */
   --diff-add-bg: #f6ffed;
@@ -56,8 +58,11 @@ html[data-theme='dark'] {
   --scroll-thumb: rgba(255, 255, 255, 0.18);
   --scroll-thumb-hover: rgba(255, 255, 255, 0.32);
   --selection-bg: rgba(22, 119, 255, 0.35);
-  /* 리스트 선택 하이라이트 + 보조 텍스트 — antd dark controlItemBgActive 계열 */
-  --app-selected: #111a2c;
+  /* 리스트 선택 하이라이트 + 보조 텍스트 — 배경(#141414)과 또렷이 구분되는 파랑.
+     글자가 묻히지 않도록 선택 글자색을 밝게 명시. */
+  --app-selected: #15395b;
+  --app-selected-fg: rgba(255, 255, 255, 0.95);
+  --app-selected-accent: #4096ff;
   --app-muted: rgba(255, 255, 255, 0.45);
   /* diff 추가/삭제 — 어두운 배경 + 밝은 글자 */
   --diff-add-bg: #162312;

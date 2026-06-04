@@ -74,9 +74,13 @@ type TrafficTableProps = {
   records: TrafficRecord[];
   selectedRecordId: number | null;
   onSelect: (record: TrafficRecord) => void;
+  /** 가용 영역 높이(px). 가상 스크롤 본문이 화면 밖으로 넘치지 않게 부모가 측정해 전달 */
+  scrollY: number;
 };
 
-export const TrafficTable = ({ records, selectedRecordId, onSelect }: TrafficTableProps) => {
+export const TrafficTable = ({ records, selectedRecordId, onSelect, scrollY }: TrafficTableProps) => {
+  // 헤더(약 39px)를 뺀 본문 높이. 측정 전(0)에는 안전한 기본값.
+  const bodyHeight = scrollY > 0 ? Math.max(scrollY - 39, 0) : 400;
   return (
     <Table<TrafficRecord>
       rowKey="id"
@@ -84,15 +88,20 @@ export const TrafficTable = ({ records, selectedRecordId, onSelect }: TrafficTab
       columns={columns}
       size="small"
       pagination={false}
-      scroll={{ y: 'calc(100vh - 160px)' }}
+      scroll={{ y: bodyHeight }}
       virtual
-      onRow={(record) => ({
-        onClick: () => onSelect(record),
-        style: {
-          cursor: 'pointer',
-          background: record.id === selectedRecordId ? 'var(--app-selected)' : undefined,
-        },
-      })}
+      onRow={(record) => {
+        const selected = record.id === selectedRecordId;
+        return {
+          onClick: () => onSelect(record),
+          style: {
+            cursor: 'pointer',
+            background: selected ? 'var(--app-selected)' : undefined,
+            color: selected ? 'var(--app-selected-fg)' : undefined,
+            boxShadow: selected ? 'inset 3px 0 0 var(--app-selected-accent)' : undefined,
+          },
+        };
+      }}
     />
   );
 };

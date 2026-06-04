@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, ConfigProvider, Segmented, Space, message, theme } from 'antd';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Button, ConfigProvider, Segmented, Space, Splitter, message, theme } from 'antd';
 import koKR from 'antd/locale/ko_KR';
 import { TopToolbar } from './components/TopToolbar';
 import { SessionSidebar } from './components/SessionSidebar';
@@ -34,8 +34,17 @@ import { useReplay } from './hooks/useReplay';
 import { useExportActions } from './hooks/useExportActions';
 import { useAiActions } from './hooks/useAiActions';
 import { useUpdate } from './hooks/useUpdate';
+import { useElementHeight } from './hooks/useElementHeight';
 import { ipc } from './services/ipc';
 import type { TrafficRecord } from '../../shared/types';
+
+// 패널 폭 영속화 (localStorage)
+const SIDEBAR_W_KEY = 'hpr.layout.sidebarW';
+const DETAIL_W_KEY = 'hpr.layout.detailW';
+const readWidth = (key: string, fallback: number): number => {
+  const raw = Number(localStorage.getItem(key));
+  return Number.isFinite(raw) && raw > 0 ? raw : fallback;
+};
 
 const App = () => {
   const [messageApi, messageContextHolder] = message.useMessage();
@@ -58,6 +67,12 @@ const App = () => {
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerSeed, setComposerSeed] = useState<TrafficRecord | null>(null);
   const [trafficView, setTrafficView] = useState<'table' | 'waterfall'>('table');
+
+  // 테이블 가용 높이 측정(화면 잘림 방지) + 좌우 패널 폭 영속화
+  const tableAreaRef = useRef<HTMLDivElement | null>(null);
+  const tableHeight = useElementHeight(tableAreaRef);
+  const [sidebarW, setSidebarW] = useState(() => readWidth(SIDEBAR_W_KEY, 300));
+  const [detailW, setDetailW] = useState(() => readWidth(DETAIL_W_KEY, 480));
   const [compareOpen, setCompareOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -216,7 +231,18 @@ const App = () => {
   return (
     <ConfigProvider
       locale={koKR}
-      theme={{ algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm }}
+      theme={{
+        algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        // 다크모드에서 Select/드롭다운 선택 항목이 또렷하게 구분되도록(글자 가독 유지)
+        components: darkMode
+          ? {
+              Select: {
+                optionSelectedBg: '#15395b',
+                optionSelectedColor: 'rgba(255, 255, 255, 0.95)',
+              },
+            }
+          : undefined,
+      }}
     >
       {messageContextHolder}
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
@@ -272,81 +298,102 @@ const App = () => {
           darkMode={darkMode}
           onToggleDarkMode={setDarkMode}
         />
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          <SessionSidebar
-            sessions={sessions}
-            selectedSessionId={selectedSessionId}
-            recordingSessionId={status.recordingSessionId}
-            replaySessionId={replay.status?.sessionId ?? null}
-            onSelect={(sessionId) => {
-              setSelectedSessionId(sessionId);
-              setSelectedRecord(null);
-            }}
-            onDelete={handleDelete}
-            onStartReplay={(sessionId) => void replay.start(sessionId)}
-            onStopReplay={() => void replay.stop()}
-            onExportHar={(sessionId) => void exporter.exportHar(sessionId)}
-            onExportMarkdown={(sessionId) => void exporter.exportMarkdown(sessionId)}
-            onExportPostman={(sessionId) => void exporter.exportPostman(sessionId)}
-            onExportOpenApi={(sessionId) => void exporter.exportOpenApi(sessionId)}
-            onExportK6={(sessionId) => void exporter.exportK6(sessionId)}
-          />
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ padding: '8px 16px 0' }}>
-              <Segmented
-                size="small"
-                value={trafficView}
-                onChange={(value) => setTrafficView(value as 'table' | 'waterfall')}
-                options={[
-                  { label: '테이블', value: 'table' },
-                  { label: '워터폴', value: 'waterfall' },
-                ]}
+        <Splitter
+          style={{ flex: 1, overflow: 'hidden' }}
+          onResizeEnd={(sizes) => {
+            const [left, , right] = sizes;
+            if (left > 0) {
+              setSidebarW(left);
+              localStorage.setItem(SIDEBAR_W_KEY, String(Math.round(left)));
+            }
+            if (right > 0) {
+              setDetailW(right);
+              localStorage.setItem(DETAIL_W_KEY, String(Math.round(right)));
+            }
+          }}
+        >
+          <Splitter.Panel defaultSize={sidebarW} min={200} max={480}>
+            <SessionSidebar
+              sessions={sessions}
+              selectedSessionId={selectedSessionId}
+              recordingSessionId={status.recordingSessionId}
+              replaySessionId={replay.status?.sessionId ?? null}
+              onSelect={(sessionId) => {
+                setSelectedSessionId(sessionId);
+                setSelectedRecord(null);
+              }}
+              onDelete={handleDelete}
+              onStartReplay={(sessionId) => void replay.start(sessionId)}
+              onStopReplay={() => void replay.stop()}
+              onExportHar={(sessionId) => void exporter.exportHar(sessionId)}
+              onExportMarkdown={(sessionId) => void exporter.exportMarkdown(sessionId)}
+              onExportPostman={(sessionId) => void exporter.exportPostman(sessionId)}
+              onExportOpenApi={(sessionId) => void exporter.exportOpenApi(sessionId)}
+              onExportK6={(sessionId) => void exporter.exportK6(sessionId)}
+            />
+          </Splitter.Panel>
+          <Splitter.Panel min={360}>
+            <div
+              style={{
+                height: '100%',
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
+              <div style={{ padding: '8px 16px 0' }}>
+                <Segmented
+                  size="small"
+                  value={trafficView}
+                  onChange={(value) => setTrafficView(value as 'table' | 'waterfall')}
+                  options={[
+                    { label: '테이블', value: 'table' },
+                    { label: '워터폴', value: 'waterfall' },
+                  ]}
+                />
+              </div>
+              <TrafficFilterBar
+                filter={filter}
+                onChange={setFilter}
+                total={records.length}
+                shown={filtered.length}
+              />
+              <div ref={tableAreaRef} style={{ flex: 1, overflow: 'auto' }}>
+                {trafficView === 'table' ? (
+                  <TrafficTable
+                    records={filtered}
+                    selectedRecordId={selectedRecord?.id ?? null}
+                    onSelect={setSelectedRecord}
+                    scrollY={tableHeight}
+                  />
+                ) : (
+                  <WaterfallView records={filtered} />
+                )}
+              </div>
+            </div>
+          </Splitter.Panel>
+          <Splitter.Panel defaultSize={detailW} min={320} max={720}>
+            <div style={{ height: '100%', overflow: 'hidden' }}>
+              <TrafficDetail
+                record={selectedRecord}
+                onCopyCurl={(recordId) => void exporter.copyCurl(recordId)}
+                onCopySnippet={(text, label) => void exporter.copySnippet(text, label)}
+                onResend={(record) => {
+                  setComposerSeed(record);
+                  setComposerOpen(true);
+                }}
+                onSaveSnapshot={(record) => void handleSaveSnapshot(record)}
+                onPickDiff={handlePickDiff}
+                onAddFavorite={(record) => void handleAddFavorite(record)}
+                onAiExplain={ai.explain}
+                onAiTests={ai.tests}
+                onAiSecurity={ai.security}
+                onAiMock={ai.mock}
               />
             </div>
-            <TrafficFilterBar
-              filter={filter}
-              onChange={setFilter}
-              total={records.length}
-              shown={filtered.length}
-            />
-            <div style={{ flex: 1, overflow: 'auto' }}>
-              {trafficView === 'table' ? (
-                <TrafficTable
-                  records={filtered}
-                  selectedRecordId={selectedRecord?.id ?? null}
-                  onSelect={setSelectedRecord}
-                />
-              ) : (
-                <WaterfallView records={filtered} />
-              )}
-            </div>
-          </div>
-          <div
-            style={{
-              width: 480,
-              borderLeft: '1px solid var(--app-border)',
-              overflow: 'hidden',
-              flexShrink: 0,
-            }}
-          >
-            <TrafficDetail
-              record={selectedRecord}
-              onCopyCurl={(recordId) => void exporter.copyCurl(recordId)}
-              onCopySnippet={(text, label) => void exporter.copySnippet(text, label)}
-              onResend={(record) => {
-                setComposerSeed(record);
-                setComposerOpen(true);
-              }}
-              onSaveSnapshot={(record) => void handleSaveSnapshot(record)}
-              onPickDiff={handlePickDiff}
-              onAddFavorite={(record) => void handleAddFavorite(record)}
-              onAiExplain={ai.explain}
-              onAiTests={ai.tests}
-              onAiSecurity={ai.security}
-              onAiMock={ai.mock}
-            />
-          </div>
-        </div>
+          </Splitter.Panel>
+        </Splitter>
       </div>
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <ComposerModal

@@ -34,7 +34,7 @@ export const SessionSidebar = ({
   onExportK6,
 }: SessionSidebarProps) => {
   return (
-    <div style={{ width: 300, borderRight: '1px solid var(--app-border)', overflow: 'auto', flexShrink: 0 }}>
+    <div style={{ width: '100%', height: '100%', overflow: 'auto' }}>
       <Typography.Title level={5} style={{ padding: '12px 16px', margin: 0 }}>
         세션
       </Typography.Title>
@@ -48,6 +48,9 @@ export const SessionSidebar = ({
               cursor: 'pointer',
               padding: '8px 12px',
               background: session.id === selectedSessionId ? 'var(--app-selected)' : undefined,
+              color: session.id === selectedSessionId ? 'var(--app-selected-fg)' : undefined,
+              boxShadow:
+                session.id === selectedSessionId ? 'inset 3px 0 0 var(--app-selected-accent)' : undefined,
             }}
             actions={[
               <Dropdown
