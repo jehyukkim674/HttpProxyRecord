@@ -80,4 +80,23 @@ describe('buildSwapScript', () => {
     expect(script.indexOf('kill -0')).toBeLessThan(script.indexOf('ditto'));
     expect(script.indexOf('ditto')).toBeLessThan(script.indexOf('open'));
   });
+
+  it('크래시 안전: 기존을 .old로 옮긴 뒤 교체하고, 실패 시 롤백한다', () => {
+    const script = buildSwapScript(
+      4242,
+      '/tmp/x/HttpProxyRecord.app',
+      '/Applications/HttpProxyRecord.app',
+      '/tmp/x',
+    );
+    // 기존 번들을 .old로 원자적 rename(같은 부모) 후 새 번들 이동
+    expect(script).toContain(
+      'mv "/Applications/HttpProxyRecord.app" "/Applications/HttpProxyRecord.app.old"',
+    );
+    // 새 번들 이동 실패 시 .old를 되돌려 항상 유효한 번들이 남게
+    expect(script).toContain(
+      'mv "/Applications/HttpProxyRecord.app.new" "/Applications/HttpProxyRecord.app" || { mv "/Applications/HttpProxyRecord.app.old" "/Applications/HttpProxyRecord.app"; exit 1; }',
+    );
+    // 기존 삭제(rm -rf bundle) 후 이동하는 위험한 순서가 아니어야 함
+    expect(script).not.toContain('rm -rf "/Applications/HttpProxyRecord.app"\n');
+  });
 });

@@ -43,16 +43,19 @@ export const bundleRootFromExe = (exePath: string): string | null => {
 };
 
 /**
- * 현재 앱이 종료되길 기다렸다가 번들을 교체하고 재실행하는 detached 스왑 스크립트.
- * .new로 먼저 복사한 뒤 교체해, 복사 실패 시 기존 번들이 보존되게 한다. (순수)
+ * 현재 앱이 종료되길 기다렸다가 번들을 교체하고 재실행하는 detached 스왑 스크립트. (순수)
+ *
+ * 크래시 안전: 새 번들을 .new로 먼저 복사 → 기존을 .old로 원자적 rename(같은 부모 디렉터리)
+ * → .new를 제자리로 rename. 마지막 단계가 실패하면 .old를 즉시 되돌려, 어느 시점에 죽어도
+ * 항상 유효한 번들이 한 개는 남도록 한다(앱이 사라지는 창을 없앤다).
  */
 export const buildSwapScript = (pid: number, newApp: string, bundle: string, tmpDir: string): string =>
   [
     `while kill -0 ${pid} 2>/dev/null; do sleep 0.3; done`,
     `/usr/bin/ditto "${newApp}" "${bundle}.new" || exit 1`,
-    `rm -rf "${bundle}"`,
-    `mv "${bundle}.new" "${bundle}"`,
-    `rm -rf "${tmpDir}"`,
+    `mv "${bundle}" "${bundle}.old" || exit 1`,
+    `mv "${bundle}.new" "${bundle}" || { mv "${bundle}.old" "${bundle}"; exit 1; }`,
+    `rm -rf "${bundle}.old" "${tmpDir}"`,
     `open "${bundle}"`,
     '',
   ].join('\n');
