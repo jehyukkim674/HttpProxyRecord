@@ -68,4 +68,18 @@ describe('SettingsStore', () => {
     store.setScripts(scripts);
     expect(store.getScripts()).toEqual(scripts);
   });
+
+  it('오버라이드 규칙 / 브레이크포인트 패턴 / 알림 규칙 라운드트립', () => {
+    const store = new SettingsStore(new MemoryBackend());
+
+    const rules = [{ urlPattern: '/api/*', statusCode: 503, body: 'down', enabled: true }] as never;
+    store.setOverrideRules(rules);
+    expect(store.getOverrideRules()).toEqual(rules);
+
+    store.setBreakpointPatterns(['/login', '/pay']);
+    expect(store.getBreakpointPatterns()).toEqual(['/login', '/pay']);
+
+    store.setAlertRule({ enabled: true, statusMin: 400 });
+    expect(store.getAlertRule()).toEqual({ enabled: true, statusMin: 400 });
+  });
 });

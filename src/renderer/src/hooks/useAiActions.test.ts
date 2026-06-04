@@ -9,6 +9,9 @@ const ipcMock = vi.hoisted(() => ({
   aiGenerateTests: vi.fn(),
   aiDetectAnomalies: vi.fn(),
   aiSearch: vi.fn(),
+  aiSessionReport: vi.fn(),
+  aiSecuritySuggest: vi.fn(),
+  aiMockData: vi.fn(),
 }));
 vi.mock('../services/ipc', () => ({ ipc: ipcMock }));
 
@@ -107,5 +110,46 @@ describe('useAiActions', () => {
       result.current.closeModal();
     });
     expect(result.current.modal.open).toBe(false);
+  });
+
+  it.each([
+    ['tests', 'aiGenerateTests', 'AI 테스트 케이스'],
+    ['security', 'aiSecuritySuggest', 'AI 보안 제안'],
+    ['mock', 'aiMockData', 'AI 목 데이터'],
+  ] as const)('%s: 레코드 기반 AI 액션이 모달에 결과를 채운다', async (fnName, ipcName, title) => {
+    ipcMock[ipcName].mockResolvedValue('결과 텍스트');
+    const { result } = renderHook(() => useAiActions(fakeMessage(), 1, []));
+
+    act(() => {
+      (result.current[fnName] as (r: TrafficRecord) => void)(rec({ id: 9 }));
+    });
+
+    await waitFor(() => expect(result.current.modal.text).toBe('결과 텍스트'));
+    expect(result.current.modal.title).toBe(title);
+    expect(ipcMock[ipcName]).toHaveBeenCalledWith(9);
+  });
+
+  it('report: 세션이 있으면 리포트를 모달에 채운다', async () => {
+    ipcMock.aiSessionReport.mockResolvedValue('리포트');
+    const { result } = renderHook(() => useAiActions(fakeMessage(), 5, []));
+    act(() => result.current.report());
+    await waitFor(() => expect(result.current.modal.text).toBe('리포트'));
+    expect(ipcMock.aiSessionReport).toHaveBeenCalledWith(5);
+  });
+
+  it('report: 세션 미선택이면 안내만', () => {
+    const message = fakeMessage();
+    const { result } = renderHook(() => useAiActions(message, null, []));
+    act(() => result.current.report());
+    expect(message.info).toHaveBeenCalledWith('세션을 먼저 선택하세요');
+    expect(ipcMock.aiSessionReport).not.toHaveBeenCalled();
+  });
+
+  it('AI 호출 실패 시 에러 메시지를 모달 텍스트로 보여준다', async () => {
+    ipcMock.aiExplain.mockRejectedValue(new Error('429 한도 초과'));
+    const { result } = renderHook(() => useAiActions(fakeMessage(), 1, []));
+    act(() => result.current.explain(rec({ id: 1 })));
+    await waitFor(() => expect(result.current.modal.loading).toBe(false));
+    expect(result.current.modal.text).toBe('429 한도 초과');
   });
 });

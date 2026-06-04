@@ -1,5 +1,16 @@
-import { describe, expect, it } from 'vitest';
-import { buildMacProxyScript, buildProxyCommands, runProxyCommands } from '../src/main/system/systemProxy';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const execFileMock = vi.hoisted(() => vi.fn());
+vi.mock('node:child_process', () => ({ execFile: execFileMock }));
+
+import {
+  buildMacProxyScript,
+  buildProxyCommands,
+  runProxyCommands,
+  SystemProxyManager,
+} from '../src/main/system/systemProxy';
+
+type ExecCb = (err: unknown, result?: { stdout: string }) => void;
 
 describe('buildProxyCommands', () => {
   it('macOS 활성화 명령을 네트워크 서비스별로 만든다', () => {
@@ -168,5 +179,54 @@ describe('buildMacProxyScript', () => {
     const script = buildMacProxyScript(commands);
 
     expect(script).toContain("'Bob'\\''s Wi-Fi'");
+  });
+});
+
+describe('SystemProxyManager (darwin)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // 기본: networksetup 서비스 목록 + osascript 성공
+    execFileMock.mockImplementation((file: string, args: string[], cb: ExecCb) => {
+      if (args[0] === '-listallnetworkservices') {
+        cb(null, { stdout: 'An asterisk (*) denotes...\nWi-Fi\nLG Monitor Controls\n*Disabled Svc\n' });
+      } else {
+        cb(null, { stdout: '' });
+      }
+    });
+  });
+
+  it('enable: 비활성(*) 제외한 서비스로 osascript 관리자 승격 실행 + isEnabled', async () => {
+    const mgr = new SystemProxyManager();
+    expect(mgr.isEnabled).toBe(false);
+
+    await mgr.enable('127.0.0.1', 8888);
+
+    expect(mgr.isEnabled).toBe(true);
+    const osa = execFileMock.mock.calls.find((c) => c[0] === 'osascript');
+    expect(osa).toBeTruthy();
+    const appleScript = osa![1][1] as string;
+    expect(appleScript).toContain('with administrator privileges');
+    expect(appleScript).toContain("'Wi-Fi'");
+    expect(appleScript).toContain("'LG Monitor Controls'"); // 가상 서비스도 포함(스크립트 ; true로 무시)
+    expect(appleScript).not.toContain('Disabled Svc'); // 비활성(*)은 제외
+  });
+
+  it('disable: setwebproxystate off를 osascript로 실행하고 isEnabled false', async () => {
+    const mgr = new SystemProxyManager();
+    await mgr.disable();
+
+    expect(mgr.isEnabled).toBe(false);
+    const osa = execFileMock.mock.calls.find((c) => c[0] === 'osascript');
+    expect(osa![1][1] as string).toContain('-setwebproxystate');
+  });
+
+  it('권한 프롬프트 취소(-128) 시 취소 메시지로 에러를 던진다', async () => {
+    execFileMock.mockImplementation((file: string, args: string[], cb: ExecCb) => {
+      if (args[0] === '-listallnetworkservices') cb(null, { stdout: 'h\nWi-Fi\n' });
+      else cb(new Error('osascript: execution error: User canceled. (-128)'));
+    });
+    const mgr = new SystemProxyManager();
+
+    await expect(mgr.enable('127.0.0.1', 8888)).rejects.toThrow('취소');
   });
 });

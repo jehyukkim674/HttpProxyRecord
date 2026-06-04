@@ -169,4 +169,17 @@ describe('RecordStore', () => {
     expect(store.getSnapshotById(snap.id)?.body).toBe('b');
     expect(store.getSnapshotById(9999)).toBeNull();
   });
+
+  it('즐겨찾기: 저장·목록·메모수정·삭제 라운드트립', () => {
+    const fav = store.saveFavorite({ method: 'POST', url: 'https://h/login', note: '로그인' });
+    expect(fav.id).toBeGreaterThan(0);
+
+    expect(store.listFavorites()).toHaveLength(1);
+
+    store.updateFavoriteNote(fav.id, '수정된 메모');
+    expect(store.listFavorites()[0].note).toBe('수정된 메모');
+
+    store.deleteFavorite(fav.id);
+    expect(store.listFavorites()).toEqual([]);
+  });
 });

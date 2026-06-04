@@ -9,7 +9,9 @@ const ipcMock = vi.hoisted(() => ({
   exportPostman: vi.fn(),
   exportOpenApi: vi.fn(),
   exportK6: vi.fn(),
+  exportBundle: vi.fn(),
   importHar: vi.fn(),
+  importBundle: vi.fn(),
   copyCurl: vi.fn(),
   copyToClipboard: vi.fn(),
 }));
@@ -74,6 +76,39 @@ describe('useExportActions', () => {
     });
 
     expect(reload).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['exportMarkdown', 'Markdown 저장 완료: /tmp/o'],
+    ['exportPostman', 'Postman 컬렉션 저장: /tmp/o'],
+    ['exportOpenApi', 'OpenAPI 스펙 저장: /tmp/o'],
+    ['exportK6', 'k6 스크립트 저장: /tmp/o'],
+    ['exportBundle', '세션 번들 저장: /tmp/o'],
+  ] as const)('%s 저장됨: 해당 success 메시지', async (name, expected) => {
+    ipcMock[name].mockResolvedValue({ saved: true, path: '/tmp/o' });
+    const message = fakeMessage();
+    const { result } = renderHook(() => useExportActions(message, vi.fn()));
+
+    await act(async () => {
+      await (result.current as unknown as Record<string, (id: number) => Promise<void>>)[name](1);
+    });
+
+    expect(ipcMock[name]).toHaveBeenCalledWith(1);
+    expect(message.success).toHaveBeenCalledWith(expected);
+  });
+
+  it('importBundle 성공: reload 후 success', async () => {
+    ipcMock.importBundle.mockResolvedValue({ imported: true });
+    const reload = vi.fn().mockResolvedValue(undefined);
+    const message = fakeMessage();
+    const { result } = renderHook(() => useExportActions(message, reload));
+
+    await act(async () => {
+      await result.current.importBundle();
+    });
+
+    expect(reload).toHaveBeenCalled();
+    expect(message.success).toHaveBeenCalledWith('세션 번들을 가져왔어요');
   });
 
   it('copyCurl / copySnippet: ipc 호출 + 복사 안내', async () => {
